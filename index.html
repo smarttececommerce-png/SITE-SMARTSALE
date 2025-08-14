@@ -99,7 +99,6 @@
         <button class="tab-btn" data-tab="anuncios">Anúncios</button>
         <button class="tab-btn" data-tab="relatorios">Relatórios</button>
         <button class="tab-btn" data-tab="config">Configurações</button>
-        <button class="tab-btn" data-tab="backup">Backup/Restore</button>
       </div>
     </header>
 
@@ -377,32 +376,6 @@
         </div>
       </div>
     </section>
-
-    <section id="tab-backup" class="tab hidden" style="margin-top:12px;">
-        <div class="card">
-            <h3>Backup e Restauração (Firebase)</h3>
-            <div class="grid grid-2">
-                <div class="card">
-                    <h4>Baixar Backup</h4>
-                    <p class="muted">Gere e baixe um ficheiro .json com todos os dados atuais do Firebase (contas, anúncios e configurações).</p>
-                    <button class="btn-secondary" id="btn-backup-json">Baixar Backup do Firebase (.json)</button>
-                </div>
-                <div class="card">
-                    <h4>Restaurar a partir de um Ficheiro</h4>
-                    <p class="muted">Envie um ficheiro .json de backup. <strong>Atenção:</strong> Isto substituirá todos os dados existentes no Firebase.</p>
-                    <div class="row" style="align-items: center;">
-                        <input id="file-restore" type="file" accept="application/json" style="flex: 2;" />
-                        <button class="btn-primary" id="btn-restore-json" style="flex: 1;">Restaurar do Ficheiro</button>
-                    </div>
-                </div>
-            </div>
-            <div class="card" style="margin-top:12px; border-color: var(--danger);">
-                <h4>Zerar Dados</h4>
-                <p class="muted">Apaga permanentemente todos os dados de todas as coleções no Firebase. Use com extremo cuidado.</p>
-                <button class="btn-danger" id="btn-reset">Zerar Todos os Dados do Firebase</button>
-            </div>
-        </div>
-    </section>
   </div>
 
   <script>
@@ -411,7 +384,7 @@
       apiKey: "AIzaSyCqJ3D_bv-8UmnwGAk2n8qKb_EMLofUfys",
       authDomain: "olx---ads-ops-dashboard.firebaseapp.com",
       projectId: "olx---ads-ops-dashboard",
-      storageBucket: "olx---ads-ops-dashboard.firebasestorage.app", // Corrigido para .appspot.com que é mais comum
+      storageBucket: "olx---ads-ops-dashboard.appspot.com",
       messagingSenderId: "149455998150",
       appId: "1:149455998150:web:3074fba78ddd3367f65bc7"
     };
@@ -440,15 +413,6 @@
       async updateAd(id, data) { return await db.collection('ads').doc(id).update(data); },
       async deleteAd(id) { return await db.collection('ads').doc(id).delete(); },
       async saveSettings(settingsData) { return await db.collection('settings').doc('global').set(settingsData, { merge: true }); },
-      async resetAllData() {
-        const collections = ['ads', 'accounts', 'settings'];
-        const batch = db.batch();
-        for (const col of collections) {
-          const snapshot = await db.collection(col).get();
-          snapshot.docs.forEach(doc => batch.delete(doc.ref));
-        }
-        await batch.commit();
-      }
     };
 
     // ----------------------- Utilitários -----------------------
@@ -900,88 +864,6 @@
       state.settings.padraoLimiteGeral = getInt('cfg-limite-geral');
       await firebaseStore.saveSettings(state.settings);
       alert('Configurações salvas.'); renderDashboard();
-    });
-
-    // ----------------------- Backup/Restore -----------------------
-    document.getElementById('btn-backup-json').addEventListener('click', async () => {
-        try {
-            console.log("Iniciando backup do Firebase...");
-            alert("A gerar o backup... Por favor, aguarde.");
-            const dataToBackup = await firebaseStore.loadInitialData();
-            const blob = new Blob([JSON.stringify(dataToBackup, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `backup-olx-ops-${new Date().toISOString().slice(0, 10)}.json`;
-            a.click();
-            URL.revokeObjectURL(a.href);
-            console.log("Backup concluído.");
-        } catch (error) {
-            console.error("Erro ao gerar backup:", error);
-            alert("Ocorreu um erro ao gerar o backup. Verifique o console.");
-        }
-    });
-
-    document.getElementById('btn-restore-json').addEventListener('click', async () => {
-        const fileInput = document.getElementById('file-restore');
-        const file = fileInput.files[0];
-        if (!file) {
-            return alert('Por favor, selecione um ficheiro de backup (.json) para restaurar.');
-        }
-        if (!confirm('Tem a certeza que deseja restaurar os dados a partir deste ficheiro? TODOS os dados atuais no Firebase serão SUBSTITUÍDOS.')) {
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            try {
-                const data = JSON.parse(event.target.result);
-                if (!data.accounts || !data.ads || !data.settings) {
-                    return alert('Ficheiro de backup inválido. Formato não reconhecido.');
-                }
-                alert("Iniciando restauração... Por favor, aguarde. A página será recarregada ao final.");
-                console.log("Iniciando restauração...");
-                await firebaseStore.resetAllData();
-                console.log("Dados antigos apagados.");
-                const batch = db.batch();
-                data.accounts.forEach(account => {
-                    const docRef = db.collection('accounts').doc(account.id);
-                    const accountData = { ...account };
-                    delete accountData.id;
-                    batch.set(docRef, accountData);
-                });
-                data.ads.forEach(ad => {
-                    const docRef = db.collection('ads').doc(ad.id);
-                    const adData = { ...ad };
-                    delete adData.id;
-                    batch.set(docRef, adData);
-                });
-                const settingsRef = db.collection('settings').doc('global');
-                batch.set(settingsRef, data.settings);
-                await batch.commit();
-                console.log("Restauração concluída com sucesso!");
-                alert("Restauração concluída com sucesso! A página será recarregada.");
-                location.reload();
-            } catch (error) {
-                console.error('Erro ao restaurar dados:', error);
-                alert('Ocorreu um erro ao ler ou restaurar o ficheiro de backup. Verifique o console para mais detalhes.');
-            }
-        };
-        reader.readAsText(file);
-    });
-
-    document.getElementById('btn-reset').addEventListener('click', async () => { 
-        if (!confirm('TEM A CERTEZA?\nIsto vai apagar TODOS os dados (contas, anúncios, configurações) permanentemente da nuvem. Esta ação não pode ser desfeita.')) return; 
-        try {
-            await firebaseStore.resetAllData();
-            state.accounts = [];
-            state.ads = [];
-            state.settings = {};
-            setDefaultSettings();
-            alert('Todos os dados foram apagados. A página será recarregada.');
-            location.reload();
-        } catch (err) {
-            console.error("Erro ao apagar dados:", err);
-            alert("Ocorreu um erro ao apagar os dados.");
-        }
     });
 
     // ----------------------- Calculadora de Precificação -----------------------
