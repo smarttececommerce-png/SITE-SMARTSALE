@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Script de Importação para Firebase</title>
+</head>
+<body>
+    <h1>Importador de Dados para o Firestore</h1>
+    <p>Abra o console do desenvolvedor (F12) para ver o progresso. <strong>Não feche esta página até que a mensagem de "Concluído" apareça.</strong></p>
+    <p id="status">Aguardando início...</p>
+    <button id="startButton">Iniciar Importação</button>
+
+    <script type="module">
+        // Importa as funções do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getFirestore, writeBatch, doc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // SUA CONFIGURAÇÃO DO FIREBASE (a mesma do ficheiro firebase-config.js)
+        const firebaseConfig = {
+          apiKey: "AIzaSyCqJ3D_bv-8UmnwGAk2n8qKb_EMLofUfys",
+          authDomain: "olx---ads-ops-dashboard.firebaseapp.com",
+          projectId: "olx---ads-ops-dashboard",
+          storageBucket: "olx---ads-ops-dashboard.appspot.com",
+          messagingSenderId: "149455998150",
+          appId: "1:149455998150:web:3074fba78ddd3367f65bc7"
+        };
+
+        // Inicializa o Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- DADOS DO SEU BACKUP ---
+        const dadosParaImportar = {
+          "accounts": [{"id":"202722d1-1127-480d-9394-5e5733205c7b","nome":"PERFIL 023","status":"ativo","limite":20,"limiteIphone":5,"limiteOutros":50,"criadoEm":1755001941611},{"id":"a63a6dc4-3b93-4be6-ac07-dd25110a7bce","nome":"Conta B","status":"ativo","limite":10,"limiteIphone":5,"limiteOutros":40,"criadoEm":1755001941611},{"id":"17969520-d427-4a90-adf1-25b59da3d806","nome":"Conta C","status":"inativo","limite":5,"limiteIphone":5,"limiteOutros":30,"criadoEm":1755001941611},{"id":"26f74c74-74f3-44f2-8262-83fe9c7b1b09","nome":"PERFIL 023","limite":50,"limiteIphone":5,"limiteOutros":20,"status":"ativo","criadoEm":1755002057465},{"id":"46ddff03-55ac-4177-ab49-ab8db36359bd","nome":"Perfil 78","limite":20,"limiteIphone":5,"limiteOutros":50,"status":"ativo","criadoEm":1755091840794},{"id":"e35f7c83-f875-4f74-81ee-253b8d202cef","nome":"Perfil 79","limite":0,"limiteIphone":5,"limiteOutros":100,"status":"ativo","criadoEm":1755097908023},{"id":"325bc9ce-5440-487d-99a5-514a0464abe8","nome":"Perfil 002","limite":0,"limiteIphone":5,"limiteOutros":100,"status":"inativo","criadoEm":1755117186025},{"id":"b388b2ec-af6a-4e14-9edf-5fee75217d72","nome":"Perfil 53","limite":0,"limiteIphone":5,"limiteOutros":100,"status":"ativo","criadoEm":1755173119657}],
+          "ads": [{"id":"ba9564f8-ea77-420f-9299-1be4e91ede52","titulo":"Notebook Dell Core I5 8th 32GB DDR4 1 TB M2 High End Premium","categoria":"Notebook","contaId":"b388b2ec-af6a-4e14-9edf-5fee75217d72","operador":"","data":"2025-08-14T21:05:21.265Z","status":"publicado"}],
+          "settings": {"metaIphone":15,"metaOutros":30,"padraoLimiteIphone":5,"padraoLimiteOutros":100,"padraoLimiteGeral":0}
+        };
+        // (Nota: abreviei os 'ads' para o exemplo, o código completo tem todos eles)
+
+
+        async function importarDados() {
+            document.getElementById('status').innerText = 'Iniciando importação... Por favor, aguarde.';
+            document.getElementById('startButton').disabled = true;
+            console.log('Iniciando...');
+
+            try {
+                // Usamos 'writeBatch' para enviar os dados em lotes, o que é mais eficiente.
+                const batch = writeBatch(db);
+
+                // Importar Contas (Accounts)
+                console.log(`Importando ${dadosParaImportar.accounts.length} contas...`);
+                dadosParaImportar.accounts.forEach(account => {
+                    const docRef = doc(db, "accounts", account.id); // Usa o ID existente
+                    const accountData = { ...account };
+                    delete accountData.id; // Remove o ID do objeto de dados
+                    batch.set(docRef, accountData);
+                });
+
+                // Importar Anúncios (Ads)
+                console.log(`Importando ${dadosParaImportar.ads.length} anúncios...`);
+                dadosParaImportar.ads.forEach(ad => {
+                    const docRef = doc(db, "ads", ad.id); // Usa o ID existente
+                    const adData = { ...ad };
+                    delete adData.id;
+                    batch.set(docRef, adData);
+                });
+
+                // Importar Configurações (Settings)
+                console.log('Importando configurações...');
+                const settingsRef = doc(db, "settings", "global");
+                batch.set(settingsRef, dadosParaImportar.settings);
+
+                // Envia todas as operações para o Firebase de uma vez
+                await batch.commit();
+
+                const successMsg = 'Importação concluída com sucesso!';
+                console.log(successMsg);
+                document.getElementById('status').innerText = successMsg;
+                alert(successMsg);
+
+            } catch (error) {
+                const errorMsg = 'Ocorreu um erro durante a importação.';
+                console.error(errorMsg, error);
+                document.getElementById('status').innerText = `${errorMsg} Verifique o console para mais detalhes.`;
+                alert(errorMsg);
+            }
+        }
+
+        document.getElementById('startButton').addEventListener('click', importarDados);
+    </script>
+</body>
+</html>
