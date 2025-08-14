@@ -21,6 +21,7 @@
       --warn: #f59e0b;
       --danger: #ef4444;
       --accent: #38bdf8;
+      --border: #1f2937;
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
@@ -32,14 +33,13 @@
     .logo { width: 38px; height: 38px; border-radius: 10px; background: radial-gradient(circle at 30% 30%, #2dd4bf, #0ea5e9); box-shadow: 0 6px 20px #0ea5e955; }
     h1 { font-size: 20px; margin: 0; letter-spacing: 0.3px; }
     .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
-    .tab-btn { background: #0b1220; color: var(--text); border: 1px solid #1f2937; padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+    .tab-btn { background: #0b1220; color: var(--text); border: 1px solid var(--border); padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
     .tab-btn.active { background: #111827; border-color: #334155; }
     .grid { display: grid; gap: 12px; }
     .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     @media (max-width: 980px) { .grid-3, .grid-2 { grid-template-columns: 1fr; } }
-
-    .card { background: #0b1220; border: 1px solid #1f2937; border-radius: 14px; padding: 14px; box-shadow: 0 10px 30px #00000022 inset, 0 6px 14px #00000030; }
+    .card { background: #0b1220; border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: 0 10px 30px #00000022 inset, 0 6px 14px #00000030; }
     .card h3 { margin: 0 0 8px; font-size: 16px; color: #cbd5e1; }
     .muted { color: var(--muted); font-size: 13px; }
     .kpi { display: flex; align-items: baseline; gap: 8px; }
@@ -48,41 +48,41 @@
     .pill.success { background: #052e1a; border-color: #14532d; color: #a7f3d0; }
     .pill.warn { background: #2b2205; border-color: #6b4e00; color: #fde68a; }
     .pill.danger { background: #3b0a0a; border-color: #7f1d1d; color: #fecaca; }
-
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
     .row > * { flex: 1; }
-
     .table { width: 100%; border-collapse: collapse; }
-    .table th, .table td { padding: 10px; border-bottom: 1px solid #1f2937; text-align: left; font-size: 14px; }
+    .table th, .table td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; font-size: 14px; }
     .table th { color: #93c5fd; font-weight: 600; background: #0a1020; position: sticky; top: 0; }
-    .table-wrapper { max-height: 340px; overflow: auto; border: 1px solid #1f2937; border-radius: 12px; }
-
-    input, select, button, textarea { background: #0a1020; color: var(--text); border: 1px solid #1f2937; border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: none; transition: 0.2s; }
+    .table-wrapper { max-height: 340px; overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
+    input, select, button, textarea { background: #0a1020; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: none; transition: 0.2s; }
     input:focus, select:focus, textarea:focus { border-color: #334155; box-shadow: 0 0 0 3px #38bdf81a; }
     button { cursor: pointer; }
     .btn-primary { background: linear-gradient(90deg, #22c55e, #16a34a); border: none; }
     .btn-secondary { background: #0b1220; border-color: #334155; }
     .btn-danger { background: #7f1d1d; border-color: #7f1d1d; }
-
     .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .spacer { flex: 1; }
-
     .status-chip { padding: 4px 8px; border-radius: 999px; font-size: 12px; border: 1px solid #334155; }
     .status-publicado { background: #052e1a; color: #9ae6b4; border-color: #14532d; }
     .status-pendente { background: #1f2937; color: #e5e7eb; border-color: #374151; }
     .status-rejeitado { background: #3b0a0a; color: #fecaca; border-color: #7f1d1d; }
-
     .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
     .cal-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
-    .cal-cell { border: 1px solid #1f2937; border-radius: 10px; min-height: 76px; padding: 6px; background: #0b1220; display: flex; flex-direction: column; }
+    .cal-cell { border: 1px solid var(--border); border-radius: 10px; min-height: 76px; padding: 6px; background: #0b1220; display: flex; flex-direction: column; }
     .cal-day { font-size: 12px; color: #cbd5e1; }
     .cal-count { margin-top: auto; align-self: flex-end; font-size: 12px; padding: 2px 6px; border-radius: 999px; background: #111827; border: 1px solid #334155; color: #93c5fd; }
     .cal-today { outline: 2px solid #22c55e44; }
-
-    .progress { height: 10px; background: #0a1020; border: 1px solid #1f2937; border-radius: 999px; overflow: hidden; }
+    .progress { height: 10px; background: #0a1020; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
     .progress > div { height: 100%; background: linear-gradient(90deg, #22c55e, #38bdf8); }
-
     .hidden { display: none !important; }
+
+    /* Estilos extras para a Calculadora de Precificação */
+    .kpi3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; }
+    @media (max-width: 640px){ .kpi3{ grid-template-columns:1fr; } }
+    .kpi3 .box{ background:#0b1220; border:1px solid var(--border); padding:12px; border-radius:10px; }
+    .kpi3 .box h4{ margin:0; font-size:13px; color:#cbd5e1; }
+    .kpi3 .box .val{ font-size:22px; margin-top:6px; }
+    .val.ok{ color:#22c55e; } .val.warn{ color:#f59e0b; } .val.bad{ color:#ef4444; }
   </style>
 </head>
 <body>
@@ -201,7 +201,37 @@
     </section>
 
     <section id="tab-anuncios" class="tab hidden" style="margin-top:12px;">
+      
       <div class="card">
+        <div class="row" style="align-items:center;">
+          <h3 style="margin:0;">Calculadora de Precificação Rápida</h3>
+          <div class="spacer"></div>
+          <button class="btn-secondary" id="pc-btn-reset">Limpar Calculadora</button>
+          <button class="btn-primary" id="pc-btn-copiar">Copiar para Anúncio</button>
+        </div>
+        <div class="grid grid-2" style="margin-top:10px;">
+          <div class="card">
+            <h3>Entradas</h3>
+            <div class="row">
+              <input id="pc-inp-nome" placeholder="Produto (ex.: iPhone 12 128GB)" />
+              <select id="pc-sel-categoria"></select>
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <input id="pc-inp-custo" inputmode="decimal" placeholder="Custo (R$)" />
+              <input id="pc-inp-conc-media" inputmode="decimal" placeholder="Média concorrentes (R$)" />
+            </div>
+          </div>
+          <div class="card">
+            <h3>Sugestão de Preço</h3>
+            <div class="kpi3">
+              <div class="box"><h4>Preço sugerido</h4><div id="pc-kpi-preco" class="val">R$ 0,00</div></div>
+              <div class="box"><h4>Margem</h4><div id="pc-kpi-margem" class="val">0%</div></div>
+              <div class="box"><h4>Lucro</h4><div id="pc-kpi-lucro" class="val">R$ 0,00</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px;">
         <h3>Novo Anúncio</h3>
         <div class="grid grid-3">
           <input id="ad-titulo" placeholder="Título" />
@@ -368,11 +398,8 @@
   </div>
 
   <script>
-    // NOVO: Configuração e inicialização do Firebase
+    // Configuração do Firebase
     const firebaseConfig = {
-      //
-      // COLE AQUI O SEU OBJETO firebaseConfig QUE VOCÊ COPIOU DO CONSOLE DO FIREBASE
-      //
       apiKey: "AIzaSyCqJ3D_bv-8UmnwGAk2n8qKb_EMLofUfys",
       authDomain: "olx---ads-ops-dashboard.firebaseapp.com",
       projectId: "olx---ads-ops-dashboard",
@@ -380,18 +407,14 @@
       messagingSenderId: "149455998150",
       appId: "1:149455998150:web:3074fba78ddd3367f65bc7"
     };
-
-    // Inicializa o Firebase
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore(); // Instância do Firestore
+    const db = firebase.firestore();
 
     // ----------------------- Persistência com Firebase -----------------------
-    // NOVO: Objeto 'store' refatorado para usar o Firestore
     const firebaseStore = {
-      // Carrega os dados iniciais do Firestore
       async loadInitialData() {
         const accountsPromise = db.collection('accounts').get();
-        const adsPromise = db.collection('ads').orderBy('data', 'desc').get(); // Ordena os anúncios por mais recentes
+        const adsPromise = db.collection('ads').orderBy('data', 'desc').get();
         const settingsPromise = db.collection('settings').doc('global').get();
 
         const [accountsSnap, adsSnap, settingsDoc] = await Promise.all([accountsPromise, adsPromise, settingsPromise]);
@@ -402,17 +425,13 @@
 
         return { accounts, ads, settings };
       },
-      // Funções para manipular Contas
       async addAccount(accountData) { return await db.collection('accounts').add(accountData); },
       async updateAccount(id, data) { return await db.collection('accounts').doc(id).update(data); },
       async deleteAccount(id) { return await db.collection('accounts').doc(id).delete(); },
-      // Funções para manipular Anúncios
       async addAd(adData) { return await db.collection('ads').add(adData); },
       async updateAd(id, data) { return await db.collection('ads').doc(id).update(data); },
       async deleteAd(id) { return await db.collection('ads').doc(id).delete(); },
-      // Funções para manipular Configurações
       async saveSettings(settingsData) { return await db.collection('settings').doc('global').set(settingsData, { merge: true }); },
-      // Função para zerar os dados (USAR COM CUIDADO)
       async resetAllData() {
         const collections = ['ads', 'accounts', 'settings'];
         const batch = db.batch();
@@ -424,8 +443,7 @@
       }
     };
 
-
-    // ----------------------- Utilitários (sem alteração) -----------------------
+    // ----------------------- Utilitários -----------------------
     const fmt = {
       date(d) { return new Date(d).toLocaleDateString('pt-BR'); },
       datetime(d) { return new Date(d).toLocaleString('pt-BR'); },
@@ -437,6 +455,14 @@
       todayISO() { const t=new Date(); t.setHours(0,0,0,0); return t.toISOString(); }
     };
 
+    const BRL = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
+    function toNumberBRL(str){
+      if(!str) return 0;
+      const clean = (''+str).replace(/[^\d,\.]/g,'').replace(/\./g,'').replace(',','.');
+      const n = parseFloat(clean);
+      return isNaN(n) ? 0 : n;
+    }
+
     const state = { accounts: [], ads: [], settings: {}, view: { calYear: null, calMonth: null } };
 
     function setDefaultSettings() {
@@ -444,10 +470,10 @@
         if (!state.settings.metaOutros) state.settings.metaOutros = 30;
         if (!state.settings.padraoLimiteIphone) state.settings.padraoLimiteIphone = 5;
         if (!state.settings.padraoLimiteOutros) state.settings.padraoLimiteOutros = 100;
-        if (!state.settings.padraoLimiteGeral) state.settings.padraoLimiteGeral = 0; // 0 = sem limite
+        if (!state.settings.padraoLimiteGeral) state.settings.padraoLimiteGeral = 0;
     }
 
-    // ----------------------- Helpers de categoria (sem alteração) -----------------------
+    // ----------------------- Helpers de categoria -----------------------
     function isIphoneCategoria(cat) {
       if (!cat) return false;
       const s = cat.toLowerCase();
@@ -473,7 +499,7 @@
       return map;
     }
 
-    // ----------------------- Tabs (sem alteração) -----------------------
+    // ----------------------- Tabs -----------------------
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -482,7 +508,11 @@
         document.getElementById('tab-'+btn.dataset.tab).classList.remove('hidden');
         if (btn.dataset.tab==='dashboard') renderDashboard();
         if (btn.dataset.tab==='contas') renderContas();
-        if (btn.dataset.tab==='anuncios') { populateContaSelects(); renderAds(); }
+        if (btn.dataset.tab==='anuncios') {
+          populateContaSelects();
+          renderAds();
+          precificacaoInitOnce();
+        }
         if (btn.dataset.tab==='relatorios') renderRelatorios();
         if (btn.dataset.tab==='config') renderConfig();
       });
@@ -496,7 +526,6 @@
     const accLimiteIphone = document.getElementById('acc-limite-iphone');
     const accLimiteOutros = document.getElementById('acc-limite-outros');
 
-    // NOVO: Evento agora é 'async' para esperar o salvamento no Firebase
     document.getElementById('btn-add-conta').addEventListener('click', async () => {
       const nome = accNome.value.trim();
       const limite = parseInt(accLimite.value || (state.settings.padraoLimiteGeral||'0'), 10) || 0;
@@ -506,9 +535,9 @@
       if (!nome) return alert('Informe o nome da conta');
       
       const novaConta = { nome, limite, limiteIphone, limiteOutros, status, criadoEm: Date.now() };
-      const docRef = await firebaseStore.addAccount(novaConta); // Salva no Firebase
-      novaConta.id = docRef.id; // Adiciona o ID retornado pelo Firebase
-      state.accounts.push(novaConta); // Adiciona ao estado local
+      const docRef = await firebaseStore.addAccount(novaConta);
+      novaConta.id = docRef.id;
+      state.accounts.push(novaConta);
       
       accNome.value=''; accLimite.value=''; accLimiteIphone.value=''; accLimiteOutros.value='';
       renderContas(); populateContaSelects(); renderDashboard();
@@ -540,7 +569,6 @@
         elContasTbody.appendChild(tr);
       }
       elContasTbody.querySelectorAll('button').forEach(btn=>{
-        // NOVO: O event listener agora é async
         btn.addEventListener('click', async ()=>{
           const id = btn.dataset.id; const act = btn.dataset.act; const acc = state.accounts.find(x=>x.id===id); if (!acc) return;
           if (act==='toggle') { 
@@ -595,7 +623,6 @@
       }
     }
     
-    // NOVO: Evento agora é 'async' para esperar o salvamento no Firebase
     document.getElementById('btn-add-ad').addEventListener('click', async () => {
       const titulo = adTitulo.value.trim();
       const categoria = adCategoria.value.trim();
@@ -606,7 +633,6 @@
       if (!titulo || !categoria || !contaId) return alert('Preencha título, categoria e conta.');
       const conta = state.accounts.find(a=>a.id===contaId); if (!conta) return alert('Conta inválida');
 
-      // Checagem de limites por tipo e geral
       const usadosHoje = contagensHojePorConta(contaId);
       const ehIphone = isIphoneCategoria(categoria);
       const limGeral = conta.limite || 0;
@@ -684,7 +710,6 @@
       }
     }
     
-    // NOVO: Função de ação agora é 'async'
     async function onAdAction(e) {
       const id = e.target.dataset.id;
       const act = e.target.dataset.act;
@@ -709,10 +734,9 @@
       renderAds(); renderDashboard();
     }
     
-    // ... (O restante das funções de renderização como Dashboard, Relatórios, etc. continuam iguais)
+    // ----------------------- Dashboard (KPIs, Gráficos, Calendário) -----------------------
     let chartContaToday, chartTrend;
     function renderDashboard() {
-      // KPIs
       const hojeS = fmt.startOfDay(new Date());
       const amanhaS = fmt.endOfDay(new Date());
       const adsHoje = state.ads.filter(a=>{ const d=new Date(a.data); return d>=hojeS && d<=amanhaS; });
@@ -731,7 +755,6 @@
       });
       const alerta = document.getElementById('alerta-limites'); if (near) alerta.classList.remove('hidden'); else alerta.classList.add('hidden');
 
-      // Metas do dia
       const iphHoje = adsHoje.filter(a=>isIphoneCategoria(a.categoria)).length;
       const outHoje = adsHoje.length - iphHoje;
       const metaI = state.settings.metaIphone || 0; const metaO = state.settings.metaOutros || 0;
@@ -742,7 +765,6 @@
       document.getElementById('meta-iphone-txt').textContent = `${iphHoje}/${metaI}`;
       document.getElementById('meta-outros-txt').textContent = `${outHoje}/${metaO}`;
 
-      // Chart por conta (hoje)
       const ctx1 = document.getElementById('chartPorConta');
       const labels1 = state.accounts.map(a=>a.nome);
       const data1 = state.accounts.map(a=>counts[a.id]||0);
@@ -752,7 +774,6 @@
         options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#93c5fd' } }, y: { ticks: { color: '#93c5fd' } } } }
       });
 
-      // Tendência 30 dias
       const days = fmt.rangeDays(fmt.addDays(new Date(), -29), new Date());
       const byDay = days.map(d=>{ const s=fmt.startOfDay(d), e=fmt.endOfDay(d); return state.ads.filter(a=>{ const x=new Date(a.data); return x>=s&&x<=e; }).length; });
       const ctx2 = document.getElementById('chartTendencia'); if (chartTrend) chartTrend.destroy();
@@ -761,7 +782,6 @@
         options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#93c5fd' } }, y: { ticks: { color: '#93c5fd' } } } }
       });
 
-      // Calendário
       renderCalendar();
     }
 
@@ -863,8 +883,6 @@
       document.getElementById('cfg-limite-outros').value = state.settings.padraoLimiteOutros || 0;
       document.getElementById('cfg-limite-geral').value = state.settings.padraoLimiteGeral || 0;
     }
-
-    // NOVO: Evento agora é 'async'
     document.getElementById('btn-save-cfg').addEventListener('click', async ()=>{
       const getInt = (id) => parseInt(document.getElementById(id).value||'0',10)||0;
       state.settings.metaIphone = getInt('cfg-meta-iphone');
@@ -893,30 +911,126 @@
         }
     });
 
+    // ----------------------- Calculadora de Precificação -----------------------
+    const PC_LS_KEY = 'olx_precificacao_regras_v1';
+    const pcDefaultRules = {
+      'iPhone': { nome:'iPhone', default_margin: 0.25 },
+      'Outros': { nome:'Outros', default_margin: 0.35 }
+    };
+    const pcState = { regras: null, categoriaAtual: 'iPhone', initialized: false };
+
+    function pcLoadRules(){
+        // Esta função poderia carregar regras do state.settings, mas para simplicidade vamos mantê-las locais.
+        const localRules = localStorage.getItem(PC_LS_KEY);
+        return localRules ? JSON.parse(localRules) : JSON.parse(JSON.stringify(pcDefaultRules));
+    }
+
+    function pcMountCategorias(){
+      const sel = document.getElementById('pc-sel-categoria');
+      sel.innerHTML='';
+      for(const cat of Object.keys(pcState.regras)){
+        const opt=document.createElement('option');
+        opt.value=cat;
+        opt.textContent=cat;
+        sel.appendChild(opt);
+      }
+      sel.value = pcState.categoriaAtual;
+    }
+
+    function pcCalc(){
+      const categoria = document.getElementById('pc-sel-categoria').value;
+      const custo = toNumberBRL(document.getElementById('pc-inp-custo').value);
+      const concMed = toNumberBRL(document.getElementById('pc-inp-conc-media').value);
+      
+      const regra = pcState.regras[categoria] || pcState.regras['Outros'];
+      const margem = regra.default_margin;
+      
+      const precoMinSaudavel = custo * (1 + margem);
+      let precoSugerido = Math.max(precoMinSaudavel, concMed);
+
+      // Se não houver concorrente ou o preço dele for menor que o nosso mínimo, usamos o nosso mínimo.
+      if(!concMed || concMed < precoMinSaudavel) {
+        precoSugerido = precoMinSaudavel;
+      }
+      
+      const margemObtida = custo > 0 ? (precoSugerido - custo) / custo : 0;
+      const lucro = Math.max(0, precoSugerido - custo);
+      
+      return { precoSugerido, margemObtida, lucro };
+    }
+
+    function pcUpdate(){
+      const r = pcCalc();
+      document.getElementById('pc-kpi-preco').textContent = BRL.format(r.precoSugerido || 0);
+      document.getElementById('pc-kpi-margem').textContent = `${(r.margemObtida*100).toFixed(1)}%`;
+      document.getElementById('pc-kpi-lucro').textContent = BRL.format(r.lucro || 0);
+    }
+
+    function precificacaoInitOnce(){
+      if (pcState.initialized) {
+        pcUpdate(); 
+        return; 
+      }
+      pcState.initialized = true;
+      pcState.regras = pcLoadRules();
+      pcMountCategorias();
+      pcWireEvents();
+      pcUpdate();
+    }
+
+    function pcWireEvents(){
+      const ids = ['pc-sel-categoria', 'pc-inp-custo', 'pc-inp-conc-media', 'pc-inp-nome'];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.addEventListener('input', pcUpdate);
+      });
+
+      document.getElementById('pc-btn-reset').addEventListener('click', () => {
+        ['pc-inp-nome', 'pc-inp-custo', 'pc-inp-conc-media'].forEach(id => document.getElementById(id).value='');
+        pcUpdate();
+      });
+      
+      document.getElementById('pc-btn-copiar').addEventListener('click', () => {
+          const nomeProduto = document.getElementById('pc-inp-nome').value.trim();
+          const precoSugerido = document.getElementById('pc-kpi-preco').textContent;
+          const categoria = document.getElementById('pc-sel-categoria').value;
+          
+          if(!nomeProduto) {
+              return alert("Por favor, preencha o nome do produto na calculadora.");
+          }
+          
+          const tituloFinal = `${nomeProduto} - ${precoSugerido}`;
+          
+          document.getElementById('ad-titulo').value = tituloFinal;
+          document.getElementById('ad-categoria').value = categoria;
+          document.getElementById('ad-titulo').focus();
+      });
+    }
+
     // ----------------------- Inicialização -----------------------
     function initCalendar() { const wd = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; document.getElementById('cal-weekdays').innerHTML = wd.map(d=>`<div>${d}</div>`).join(''); }
     
-    // NOVO: Função de inicialização agora é 'async' para carregar dados do Firebase
     async function init() {
-        console.log("A carregar dados do Firebase...");
-        try {
-            const data = await firebaseStore.loadInitialData();
-            state.accounts = data.accounts;
-            state.ads = data.ads;
-            state.settings = data.settings;
-            setDefaultSettings(); // Garante que as configurações padrão existem se não vierem do DB
-            
-            console.log("Dados carregados:", state);
+      console.log("A carregar dados do Firebase...");
+      try {
+        const data = await firebaseStore.loadInitialData();
+        state.accounts = data.accounts;
+        state.ads = data.ads;
+        state.settings = data.settings;
+        setDefaultSettings();
+        
+        console.log("Dados carregados:", state);
 
-            populateContaSelects();
-            renderDashboard();
-            renderContas();
-            renderAds();
-            initCalendar();
-        } catch (err) {
-            console.error("Falha ao carregar os dados do Firebase:", err);
-            alert("Não foi possível conectar ao banco de dados. Verifique a sua conexão com a internet e a configuração do Firebase.");
-        }
+        populateContaSelects();
+        renderDashboard();
+        renderContas();
+        renderAds();
+        initCalendar();
+      } catch (err) {
+        console.error("Falha ao carregar os dados do Firebase:", err);
+        alert("Não foi possível conectar ao banco de dados. Verifique a sua conexão com a internet e a configuração do Firebase.");
+      }
     }
     
     init();
