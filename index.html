@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OLX - Ads Ops Dashboard</title>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --muted: #94a3b8;
+      --text: #e5e7eb;
+      --primary: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial; background: linear-gradient(180deg, #0b1022, var(--bg)); color: var(--text); }
+    a { color: var(--accent); text-decoration: none; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .logo { width: 38px; height: 38px; border-radius: 10px; background: radial-gradient(circle at 30% 30%, #2dd4bf, #0ea5e9); box-shadow: 0 6px 20px #0ea5e955; }
+    h1 { font-size: 20px; margin: 0; letter-spacing: 0.3px; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab-btn { background: #0b1220; color: var(--text); border: 1px solid #1f2937; padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+    .tab-btn.active { background: #111827; border-color: #334155; }
+    .grid { display: grid; gap: 12px; }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 980px) { .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+
+    .card { background: #0b1220; border: 1px solid #1f2937; border-radius: 14px; padding: 14px; box-shadow: 0 10px 30px #00000022 inset, 0 6px 14px #00000030; }
+    .card h3 { margin: 0 0 8px; font-size: 16px; color: #cbd5e1; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .kpi { display: flex; align-items: baseline; gap: 8px; }
+    .kpi .big { font-size: 28px; font-weight: 700; }
+    .pill { padding: 4px 8px; border-radius: 999px; font-size: 12px; border: 1px solid #334155; color: #cbd5e1; }
+    .pill.success { background: #052e1a; border-color: #14532d; color: #a7f3d0; }
+    .pill.warn { background: #2b2205; border-color: #6b4e00; color: #fde68a; }
+    .pill.danger { background: #3b0a0a; border-color: #7f1d1d; color: #fecaca; }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row > * { flex: 1; }
+
+    .table { width: 100%; border-collapse: collapse; }
+    .table th, .table td { padding: 10px; border-bottom: 1px solid #1f2937; text-align: left; font-size: 14px; }
+    .table th { color: #93c5fd; font-weight: 600; background: #0a1020; position: sticky; top: 0; }
+    .table-wrapper { max-height: 340px; overflow: auto; border: 1px solid #1f2937; border-radius: 12px; }
+
+    input, select, button, textarea { background: #0a1020; color: var(--text); border: 1px solid #1f2937; border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: none; transition: 0.2s; }
+    input:focus, select:focus, textarea:focus { border-color: #334155; box-shadow: 0 0 0 3px #38bdf81a; }
+    button { cursor: pointer; }
+    .btn-primary { background: linear-gradient(90deg, #22c55e, #16a34a); border: none; }
+    .btn-secondary { background: #0b1220; border-color: #334155; }
+    .btn-danger { background: #7f1d1d; border-color: #7f1d1d; }
+
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .spacer { flex: 1; }
+
+    .status-chip { padding: 4px 8px; border-radius: 999px; font-size: 12px; border: 1px solid #334155; }
+    .status-publicado { background: #052e1a; color: #9ae6b4; border-color: #14532d; }
+    .status-pendente { background: #1f2937; color: #e5e7eb; border-color: #374151; }
+    .status-rejeitado { background: #3b0a0a; color: #fecaca; border-color: #7f1d1d; }
+
+    .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .cal-header { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
+    .cal-cell { border: 1px solid #1f2937; border-radius: 10px; min-height: 76px; padding: 6px; background: #0b1220; display: flex; flex-direction: column; }
+    .cal-day { font-size: 12px; color: #cbd5e1; }
+    .cal-count { margin-top: auto; align-self: flex-end; font-size: 12px; padding: 2px 6px; border-radius: 999px; background: #111827; border: 1px solid #334155; color: #93c5fd; }
+    .cal-today { outline: 2px solid #22c55e44; }
+
+    .progress { height: 10px; background: #0a1020; border: 1px solid #1f2937; border-radius: 999px; overflow: hidden; }
+    .progress > div { height: 100%; background: linear-gradient(90deg, #22c55e, #38bdf8); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>OLX - Ads Ops Dashboard</h1>
+          <div class="muted">Gestão centralizada de contas, anúncios e produtividade diária</div>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="contas">Contas</button>
+        <button class="tab-btn" data-tab="anuncios">Anúncios</button>
+        <button class="tab-btn" data-tab="relatorios">Relatórios</button>
+        <button class="tab-btn" data-tab="config">Configurações</button>
+        <button class="tab-btn" data-tab="backup">Backup/Restore</button>
+      </div>
+    </header>
+
+    <section id="tab-dashboard" class="tab card" style="margin-top:12px;">
+      <div class="grid grid-3">
+        <div class="card">
+          <h3>Resumo Diário</h3>
+          <div class="kpi"><span class="big" id="kpi-total-hoje">0</span><span class="muted">anúncios hoje</span></div>
+          <div class="kpi"><span class="big" id="kpi-contas-ativas">0</span><span class="muted">contas ativas</span></div>
+          <div class="kpi"><span class="big" id="kpi-limites">-</span><span class="muted">uso/limite hoje</span></div>
+          <div id="alerta-limites" class="pill warn hidden" style="margin-top:8px;">Atenção: há contas próximas de limites diários</div>
+        </div>
+        <div class="card">
+          <h3>Metas do Dia</h3>
+          <div class="muted">iPhones</div>
+          <div class="row" style="align-items:center;">
+            <div class="progress" style="flex:1;"><div id="prog-iphone" style="width:0%"></div></div>
+            <div class="pill" id="meta-iphone-txt">0/0</div>
+          </div>
+          <div class="muted" style="margin-top:8px;">Outros</div>
+          <div class="row" style="align-items:center;">
+            <div class="progress" style="flex:1;"><div id="prog-outros" style="width:0%"></div></div>
+            <div class="pill" id="meta-outros-txt">0/0</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Distribuição por Conta (Hoje)</h3>
+          <canvas id="chartPorConta" height="160"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="row" style="align-items:center;">
+          <h3 style="margin:0;">Tendência (últimos 30 dias)</h3>
+        </div>
+        <canvas id="chartTendencia" height="160"></canvas>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="row" style="align-items:center;">
+          <h3 style="margin:0;">Calendário de Publicações</h3>
+          <div class="spacer"></div>
+          <div class="toolbar">
+            <button class="btn-secondary" id="cal-prev">◀</button>
+            <div id="cal-title" class="pill"></div>
+            <button class="btn-secondary" id="cal-next">▶</button>
+          </div>
+        </div>
+        <div class="cal-header" id="cal-weekdays"></div>
+        <div class="calendar" id="calendar"></div>
+      </div>
+    </section>
+
+    <section id="tab-contas" class="tab hidden" style="margin-top:12px;">
+      <div class="card">
+        <h3>Cadastro de Conta</h3>
+        <div class="grid grid-3">
+          <input id="acc-nome" placeholder="Nome/Identificador" />
+          <select id="acc-status">
+            <option value="ativo">Ativo</option>
+            <option value="inativo">Inativo</option>
+          </select>
+          <input id="acc-limite" type="number" min="0" placeholder="Limite diário (geral)" />
+          <input id="acc-limite-iphone" type="number" min="0" placeholder="Limite iPhones (dia)" />
+          <input id="acc-limite-outros" type="number" min="0" placeholder="Limite Outros (dia)" />
+          <div class="muted">Dica: iPhones geralmente 5/dia por conta</div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button class="btn-primary" id="btn-add-conta">Adicionar</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="row" style="align-items:center;">
+          <h3 style="margin:0;">Contas</h3>
+          <div class="spacer"></div>
+          <input id="conta-search" placeholder="Buscar conta..." style="max-width:260px;" />
+        </div>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Status</th>
+                <th>Limite Geral</th>
+                <th>Limite iPhones</th>
+                <th>Limite Outros</th>
+                <th>Publicado Hoje (Geral/iPhone/Outros)</th>
+                <th>Histórico 7d</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="contas-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-anuncios" class="tab hidden" style="margin-top:12px;">
+      <div class="card">
+        <h3>Novo Anúncio</h3>
+        <div class="grid grid-3">
+          <input id="ad-titulo" placeholder="Título" />
+          <input id="ad-categoria" placeholder="Categoria (ex: iPhone 13)" />
+          <select id="ad-conta"></select>
+          <input id="ad-operador" placeholder="Operador (opcional)" />
+          <input id="ad-data" type="datetime-local" />
+          <select id="ad-status">
+            <option value="publicado">Publicado</option>
+            <option value="pendente">Pendente</option>
+            <option value="rejeitado">Rejeitado</option>
+          </select>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn-primary" id="btn-add-ad">Registrar Anúncio</button>
+          <div id="alert-limite-conta" class="pill warn hidden">Conta próxima de algum limite de hoje</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="toolbar">
+          <h3 style="margin:0;">Anúncios</h3>
+          <div class="spacer"></div>
+          <input id="filtro-texto" placeholder="Busca rápida (título, categoria, operador)" style="min-width:220px;" />
+          <select id="filtro-conta"><option value="">Todas as contas</option></select>
+          <select id="filtro-status">
+            <option value="">Todos status</option>
+            <option value="publicado">Publicado</option>
+            <option value="pendente">Pendente</option>
+            <option value="rejeitado">Rejeitado</option>
+          </select>
+          <input id="filtro-data-inicio" type="date" />
+          <input id="filtro-data-fim" type="date" />
+          <button class="btn-secondary" id="btn-aplicar-filtros">Aplicar</button>
+          <button class="btn-secondary" id="btn-limpar-filtros">Limpar</button>
+        </div>
+        <div class="table-wrapper" style="margin-top:8px;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Título</th>
+                <th>Categoria</th>
+                <th>Conta</th>
+                <th>Operador</th>
+                <th>Data/Hora</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="ads-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-relatorios" class="tab hidden" style="margin-top:12px;">
+      <div class="card">
+        <div class="toolbar">
+          <h3 style="margin:0;">Analytics & Relatórios</h3>
+          <div class="spacer"></div>
+          <select id="range-rel">
+            <option value="7">Últimos 7 dias</option>
+            <option value="14">Últimos 14 dias</option>
+            <option value="30" selected>Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+            <option value="custom">Personalizado</option>
+          </select>
+          <input id="rel-inicio" type="date" class="hidden" />
+          <input id="rel-fim" type="date" class="hidden" />
+          <button class="btn-secondary" id="btn-gerar-rel">Gerar</button>
+          <button class="btn-secondary" id="btn-export-csv">Exportar CSV</button>
+          <button class="btn-secondary" id="btn-export-xlsx">Exportar Excel</button>
+        </div>
+      </div>
+
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div class="card">
+          <h3>Produtividade por Dia</h3>
+          <canvas id="chartDia" height="140"></canvas>
+        </div>
+        <div class="card">
+          <h3>Produtividade por Conta</h3>
+          <canvas id="chartConta" height="140"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-2" style="margin-top:12px;">
+        <div class="card">
+          <h3>Eficiência por Operador</h3>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead><tr><th>Operador</th><th>Anúncios</th><th>Última Atividade</th></tr></thead>
+              <tbody id="op-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Distribuição de Carga</h3>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead><tr><th>Conta</th><th>Total no Período</th><th>Média/Dia</th></tr></thead>
+              <tbody id="dist-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <h3>Registros do Período</h3>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Data</th><th>Título</th><th>Categoria</th><th>Conta</th><th>Operador</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="rel-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-config" class="tab hidden" style="margin-top:12px;">
+      <div class="card">
+        <h3>Metas Diárias e Padrões de Limite</h3>
+        <div class="grid grid-3">
+          <div>
+            <div class="muted">Meta diária iPhones</div>
+            <input id="cfg-meta-iphone" type="number" min="0" placeholder="Ex: 15" />
+          </div>
+          <div>
+            <div class="muted">Meta diária Outros</div>
+            <input id="cfg-meta-outros" type="number" min="0" placeholder="Ex: 30" />
+          </div>
+          <div>
+            <div class="muted">Padrão limite iPhones por conta</div>
+            <input id="cfg-limite-iphone" type="number" min="0" placeholder="Ex: 5" />
+          </div>
+          <div>
+            <div class="muted">Padrão limite Outros por conta</div>
+            <input id="cfg-limite-outros" type="number" min="0" placeholder="Ex: 100" />
+          </div>
+          <div>
+            <div class="muted">Padrão limite geral por conta</div>
+            <input id="cfg-limite-geral" type="number" min="0" placeholder="Opcional" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button class="btn-primary" id="btn-save-cfg">Salvar Configurações</button>
+          <div class="muted">Obs: contas existentes não são sobrescritas automaticamente. Edite-as na aba Contas se necessário.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-backup" class="tab hidden" style="margin-top:12px;">
+      <div class="card">
+        <h3>Backup e Restauração</h3>
+        <div class="row">
+          <button class="btn-danger" id="btn-reset">Zerar Todos os Dados do Firebase</button>
+        </div>
+        <div class="muted" style="margin-top:8px;">Os dados estão salvos na nuvem (Firebase). O backup agora é gerido pelo Firebase. Esta opção permite limpar a base de dados para recomeçar. Use com cuidado.</div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // NOVO: Configuração e inicialização do Firebase
+    const firebaseConfig = {
+      //
+      // COLE AQUI O SEU OBJETO firebaseConfig QUE VOCÊ COPIOU DO CONSOLE DO FIREBASE
+      //
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_PROJETO.firebaseapp.com",
+      projectId: "SEU_PROJETO_ID",
+      storageBucket: "SEU_PROJETO.appspot.com",
+      messagingSenderId: "SEU_SENDER_ID",
+      appId: "SEU_APP_ID"
+    };
+
+    // Inicializa o Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(); // Instância do Firestore
+
+    // ----------------------- Persistência com Firebase -----------------------
+    // NOVO: Objeto 'store' refatorado para usar o Firestore
+    const firebaseStore = {
+      // Carrega os dados iniciais do Firestore
+      async loadInitialData() {
+        const accountsPromise = db.collection('accounts').get();
+        const adsPromise = db.collection('ads').orderBy('data', 'desc').get(); // Ordena os anúncios por mais recentes
+        const settingsPromise = db.collection('settings').doc('global').get();
+
+        const [accountsSnap, adsSnap, settingsDoc] = await Promise.all([accountsPromise, adsPromise, settingsPromise]);
+
+        const accounts = accountsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const ads = adsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const settings = settingsDoc.exists ? settingsDoc.data() : {};
+
+        return { accounts, ads, settings };
+      },
+      // Funções para manipular Contas
+      async addAccount(accountData) { return await db.collection('accounts').add(accountData); },
+      async updateAccount(id, data) { return await db.collection('accounts').doc(id).update(data); },
+      async deleteAccount(id) { return await db.collection('accounts').doc(id).delete(); },
+      // Funções para manipular Anúncios
+      async addAd(adData) { return await db.collection('ads').add(adData); },
+      async updateAd(id, data) { return await db.collection('ads').doc(id).update(data); },
+      async deleteAd(id) { return await db.collection('ads').doc(id).delete(); },
+      // Funções para manipular Configurações
+      async saveSettings(settingsData) { return await db.collection('settings').doc('global').set(settingsData, { merge: true }); },
+      // Função para zerar os dados (USAR COM CUIDADO)
+      async resetAllData() {
+        const collections = ['ads', 'accounts', 'settings'];
+        const batch = db.batch();
+        for (const col of collections) {
+          const snapshot = await db.collection(col).get();
+          snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        }
+        await batch.commit();
+      }
+    };
+
+
+    // ----------------------- Utilitários (sem alteração) -----------------------
+    const fmt = {
+      date(d) { return new Date(d).toLocaleDateString('pt-BR'); },
+      datetime(d) { return new Date(d).toLocaleString('pt-BR'); },
+      toISODate(d) { const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString(); },
+      startOfDay(d) { const x=new Date(d); x.setHours(0,0,0,0); return x; },
+      endOfDay(d) { const x=new Date(d); x.setHours(23,59,59,999); return x; },
+      addDays(d, n) { const x=new Date(d); x.setDate(x.getDate()+n); return x; },
+      rangeDays(start, end) { const out=[]; let d=new Date(start); d.setHours(0,0,0,0); const e=fmt.startOfDay(end); while(d<=e){ out.push(new Date(d)); d=fmt.addDays(d,1);} return out; },
+      todayISO() { const t=new Date(); t.setHours(0,0,0,0); return t.toISOString(); }
+    };
+
+    const state = { accounts: [], ads: [], settings: {}, view: { calYear: null, calMonth: null } };
+
+    function setDefaultSettings() {
+        if (!state.settings.metaIphone) state.settings.metaIphone = 15;
+        if (!state.settings.metaOutros) state.settings.metaOutros = 30;
+        if (!state.settings.padraoLimiteIphone) state.settings.padraoLimiteIphone = 5;
+        if (!state.settings.padraoLimiteOutros) state.settings.padraoLimiteOutros = 100;
+        if (!state.settings.padraoLimiteGeral) state.settings.padraoLimiteGeral = 0; // 0 = sem limite
+    }
+
+    // ----------------------- Helpers de categoria (sem alteração) -----------------------
+    function isIphoneCategoria(cat) {
+      if (!cat) return false;
+      const s = cat.toLowerCase();
+      return s.includes('iphone') || s === 'iphone' || s.startsWith('iphone ');
+    }
+
+    function contagensHojePorConta(contaId) {
+      const s = fmt.startOfDay(new Date());
+      const e = fmt.endOfDay(new Date());
+      let geral = 0, iph = 0, out = 0;
+      for (const ad of state.ads) {
+        const d = new Date(ad.data); if (d<s || d>e || ad.contaId !== contaId) continue;
+        geral++;
+        if (isIphoneCategoria(ad.categoria)) iph++; else out++;
+      }
+      return { geral, iph, out };
+    }
+
+    function contagemPorContaEmDia(date) {
+      const s = fmt.startOfDay(date), e = fmt.endOfDay(date);
+      const map = {}; for (const a of state.accounts) map[a.id]=0;
+      for (const ad of state.ads) { const d=new Date(ad.data); if (d<s||d>e) continue; map[ad.contaId]=(map[ad.contaId]||0)+1; }
+      return map;
+    }
+
+    // ----------------------- Tabs (sem alteração) -----------------------
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab').forEach(s=>s.classList.add('hidden'));
+        document.getElementById('tab-'+btn.dataset.tab).classList.remove('hidden');
+        if (btn.dataset.tab==='dashboard') renderDashboard();
+        if (btn.dataset.tab==='contas') renderContas();
+        if (btn.dataset.tab==='anuncios') { populateContaSelects(); renderAds(); }
+        if (btn.dataset.tab==='relatorios') renderRelatorios();
+        if (btn.dataset.tab==='config') renderConfig();
+      });
+    });
+
+    // ----------------------- Contas -----------------------
+    const elContasTbody = document.getElementById('contas-tbody');
+    const accNome = document.getElementById('acc-nome');
+    const accLimite = document.getElementById('acc-limite');
+    const accStatus = document.getElementById('acc-status');
+    const accLimiteIphone = document.getElementById('acc-limite-iphone');
+    const accLimiteOutros = document.getElementById('acc-limite-outros');
+
+    // NOVO: Evento agora é 'async' para esperar o salvamento no Firebase
+    document.getElementById('btn-add-conta').addEventListener('click', async () => {
+      const nome = accNome.value.trim();
+      const limite = parseInt(accLimite.value || (state.settings.padraoLimiteGeral||'0'), 10) || 0;
+      const status = accStatus.value;
+      const limiteIphone = parseInt(accLimiteIphone.value || state.settings.padraoLimiteIphone, 10) || 0;
+      const limiteOutros = parseInt(accLimiteOutros.value || state.settings.padraoLimiteOutros, 10) || 0;
+      if (!nome) return alert('Informe o nome da conta');
+      
+      const novaConta = { nome, limite, limiteIphone, limiteOutros, status, criadoEm: Date.now() };
+      const docRef = await firebaseStore.addAccount(novaConta); // Salva no Firebase
+      novaConta.id = docRef.id; // Adiciona o ID retornado pelo Firebase
+      state.accounts.push(novaConta); // Adiciona ao estado local
+      
+      accNome.value=''; accLimite.value=''; accLimiteIphone.value=''; accLimiteOutros.value='';
+      renderContas(); populateContaSelects(); renderDashboard();
+    });
+
+    document.getElementById('conta-search').addEventListener('input', renderContas);
+
+    function renderContas() {
+      const q = (document.getElementById('conta-search').value || '').toLowerCase();
+      elContasTbody.innerHTML = '';
+      for (const a of state.accounts.filter(x=>x.nome.toLowerCase().includes(q))) {
+        const usados = contagensHojePorConta(a.id);
+        const historico7 = historicoUltimosDiasPorConta(a.id, 7).reduce((s,n)=>s+n,0);
+        const tr = document.createElement('tr');
+        const statusPill = `<span class="pill ${a.status==='ativo'?'success':''}">${a.status}</span>`;
+        tr.innerHTML = `
+          <td>${a.nome}</td>
+          <td>${statusPill}</td>
+          <td>${a.limite ?? 0}</td>
+          <td>${a.limiteIphone ?? 0}</td>
+          <td>${a.limiteOutros ?? 0}</td>
+          <td>${usados.geral}/${a.limite||'∞'} · ${usados.iph}/${a.limiteIphone||'∞'} · ${usados.out}/${a.limiteOutros||'∞'}</td>
+          <td>${historico7}</td>
+          <td>
+            <button class="btn-secondary" data-act="toggle" data-id="${a.id}">${a.status==='ativo'?'Desativar':'Ativar'}</button>
+            <button class="btn-secondary" data-act="edit" data-id="${a.id}">Editar</button>
+            <button class="btn-danger" data-act="del" data-id="${a.id}">Excluir</button>
+          </td>`;
+        elContasTbody.appendChild(tr);
+      }
+      elContasTbody.querySelectorAll('button').forEach(btn=>{
+        // NOVO: O event listener agora é async
+        btn.addEventListener('click', async ()=>{
+          const id = btn.dataset.id; const act = btn.dataset.act; const acc = state.accounts.find(x=>x.id===id); if (!acc) return;
+          if (act==='toggle') { 
+            acc.status = acc.status==='ativo'?'inativo':'ativo';
+            await firebaseStore.updateAccount(id, { status: acc.status });
+          }
+          if (act==='edit') {
+            const nome = prompt('Nome da conta', acc.nome); if (nome!==null) acc.nome = nome.trim()||acc.nome;
+            const limite = prompt('Limite diário (geral)', acc.limite ?? 0); if (limite!==null) acc.limite = Math.max(0, parseInt(limite||'0',10));
+            const limIph = prompt('Limite iPhones (dia)', acc.limiteIphone ?? 0); if (limIph!==null) acc.limiteIphone = Math.max(0, parseInt(limIph||'0',10));
+            const limOut = prompt('Limite Outros (dia)', acc.limiteOutros ?? 0); if (limOut!==null) acc.limiteOutros = Math.max(0, parseInt(limOut||'0',10));
+            const status = prompt('Status (ativo/inativo)', acc.status); if (status && (status==='ativo'||status==='inativo')) acc.status = status;
+            await firebaseStore.updateAccount(id, { nome: acc.nome, limite: acc.limite, limiteIphone: acc.limiteIphone, limiteOutros: acc.limiteOutros, status: acc.status });
+          }
+          if (act==='del') { 
+            if (!confirm('Excluir conta? Isso não remove anúncios já registrados.')) return; 
+            await firebaseStore.deleteAccount(id);
+            state.accounts = state.accounts.filter(x=>x.id!==id); 
+          }
+          renderContas(); populateContaSelects(); renderDashboard();
+        });
+      });
+    }
+
+    function historicoUltimosDiasPorConta(contaId, dias) {
+      const end = fmt.endOfDay(new Date());
+      const start = fmt.addDays(end, -dias+1);
+      const arr = Array(dias).fill(0);
+      for (const ad of state.ads) {
+        const d = new Date(ad.data); if (d<start||d>end) continue; if (ad.contaId!==contaId) continue;
+        const idx = Math.floor((fmt.startOfDay(d)-fmt.startOfDay(start))/86400000);
+        if (idx>=0 && idx<dias) arr[idx]++;
+      }
+      return arr;
+    }
+
+    // ----------------------- Anúncios -----------------------
+    const adTitulo = document.getElementById('ad-titulo');
+    const adCategoria = document.getElementById('ad-categoria');
+    const adConta = document.getElementById('ad-conta');
+    const adOperador = document.getElementById('ad-operador');
+    const adData = document.getElementById('ad-data');
+    const adStatus = document.getElementById('ad-status');
+
+    function populateContaSelects() {
+      const selects = [document.getElementById('ad-conta'), document.getElementById('filtro-conta')];
+      for (const sel of selects) { if (!sel) continue; if (sel.id==='filtro-conta') sel.innerHTML='<option value="">Todas as contas</option>'; else sel.innerHTML=''; }
+      for (const a of state.accounts) {
+        const label = (a.nome && String(a.nome).trim()) ? String(a.nome).trim() : `Conta ${a.id.slice(0,4)}`;
+        const opt1 = document.createElement('option'); opt1.value=a.id; opt1.textContent=label + (a.status==='inativo'?' (inativa)':''); document.getElementById('ad-conta').appendChild(opt1);
+        const opt2 = document.createElement('option'); opt2.value=a.id; opt2.textContent=label; document.getElementById('filtro-conta').appendChild(opt2);
+      }
+    }
+    
+    // NOVO: Evento agora é 'async' para esperar o salvamento no Firebase
+    document.getElementById('btn-add-ad').addEventListener('click', async () => {
+      const titulo = adTitulo.value.trim();
+      const categoria = adCategoria.value.trim();
+      const contaId = adConta.value;
+      const operador = adOperador.value.trim();
+      const data = adData.value ? new Date(adData.value).toISOString() : new Date().toISOString();
+      const status = adStatus.value;
+      if (!titulo || !categoria || !contaId) return alert('Preencha título, categoria e conta.');
+      const conta = state.accounts.find(a=>a.id===contaId); if (!conta) return alert('Conta inválida');
+
+      // Checagem de limites por tipo e geral
+      const usadosHoje = contagensHojePorConta(contaId);
+      const ehIphone = isIphoneCategoria(categoria);
+      const limGeral = conta.limite || 0;
+      const limIph = conta.limiteIphone || 0;
+      const limOut = conta.limiteOutros || 0;
+      let mensagens = [];
+      if (limGeral>0 && usadosHoje.geral+1>limGeral) mensagens.push(`Geral (${usadosHoje.geral}/${limGeral})`);
+      if (ehIphone) { if (limIph>0 && usadosHoje.iph+1>limIph) mensagens.push(`iPhones (${usadosHoje.iph}/${limIph})`); }
+      else { if (limOut>0 && usadosHoje.out+1>limOut) mensagens.push(`Outros (${usadosHoje.out}/${limOut})`); }
+      if (mensagens.length>0) { if (!confirm(`Limite atingido para: ${mensagens.join(' e ')}. Deseja registrar mesmo assim?`)) return; }
+
+      const novo = { titulo, categoria, contaId, operador, data, status };
+      const docRef = await firebaseStore.addAd(novo);
+      novo.id = docRef.id;
+
+      state.ads.unshift(novo);
+      adTitulo.value=''; adCategoria.value=''; adOperador.value=''; adData.value=''; adStatus.value='publicado';
+      renderAds(); renderDashboard(); renderContas();
+    });
+
+    const filtroTexto = document.getElementById('filtro-texto');
+    const filtroConta = document.getElementById('filtro-conta');
+    const filtroStatus = document.getElementById('filtro-status');
+    const filtroInicio = document.getElementById('filtro-data-inicio');
+    const filtroFim = document.getElementById('filtro-data-fim');
+    document.getElementById('btn-aplicar-filtros').addEventListener('click', renderAds);
+    document.getElementById('btn-limpar-filtros').addEventListener('click', ()=>{ filtroTexto.value=''; filtroConta.value=''; filtroStatus.value=''; filtroInicio.value=''; filtroFim.value=''; renderAds(); });
+
+    function renderAds() {
+      const tbody = document.getElementById('ads-tbody');
+      const q = (filtroTexto.value||'').toLowerCase();
+      const contaId = filtroConta.value||'';
+      const st = filtroStatus.value||'';
+      const di = filtroInicio.value? fmt.startOfDay(new Date(filtroInicio.value)) : null;
+      const df = filtroFim.value? fmt.endOfDay(new Date(filtroFim.value)) : null;
+      const contasById = Object.fromEntries(state.accounts.map(a=>[a.id,a]));
+      const rows = state.ads.filter(ad=>{
+        const text = (ad.titulo+' '+ad.categoria+' '+(ad.operador||'')).toLowerCase();
+        if (q && !text.includes(q)) return false;
+        if (contaId && ad.contaId!==contaId) return false;
+        if (st && ad.status!==st) return false;
+        const d=new Date(ad.data); if (di && d<di) return false; if (df && d>df) return false;
+        return true;
+      });
+      tbody.innerHTML='';
+      for (const ad of rows.slice(0, 1000)) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${ad.titulo}</td>
+          <td>${ad.categoria}</td>
+          <td>${contasById[ad.contaId]?.nome || '-'}</td>
+          <td>${ad.operador || '-'}</td>
+          <td>${fmt.datetime(ad.data)}</td>
+          <td><span class="status-chip status-${ad.status}">${ad.status}</span></td>
+          <td>
+            <select data-act="chgstatus" data-id="${ad.id}">
+              <option value="publicado" ${ad.status==='publicado'?'selected':''}>Publicado</option>
+              <option value="pendente" ${ad.status==='pendente'?'selected':''}>Pendente</option>
+              <option value="rejeitado" ${ad.status==='rejeitado'?'selected':''}>Rejeitado</option>
+            </select>
+            <button class="btn-secondary" data-act="edit" data-id="${ad.id}">Editar</button>
+            <button class="btn-danger" data-act="del" data-id="${ad.id}">Excluir</button>
+          </td>`;
+        tbody.appendChild(tr);
+      }
+      tbody.querySelectorAll('button').forEach(el=> el.addEventListener('click', onAdAction));
+      tbody.querySelectorAll('select').forEach(el=> el.addEventListener('change', onAdAction));
+
+      const contaSel = adConta.value; if (contaSel) {
+        const conta = state.accounts.find(a=>a.id===contaSel);
+        const usadosHoje = contagensHojePorConta(contaSel);
+        const limNear = (lim, usado) => lim>0 && usado>=Math.floor(lim*0.8);
+        const alertEl = document.getElementById('alert-limite-conta');
+        if (conta && (limNear(conta.limite, usadosHoje.geral) || limNear(conta.limiteIphone, usadosHoje.iph) || limNear(conta.limiteOutros, usadosHoje.out))) alertEl.classList.remove('hidden'); else alertEl.classList.add('hidden');
+      }
+    }
+    
+    // NOVO: Função de ação agora é 'async'
+    async function onAdAction(e) {
+      const id = e.target.dataset.id;
+      const act = e.target.dataset.act;
+      const ad = state.ads.find(x=>x.id===id);
+      if (!ad) return;
+
+      if (act==='del') { 
+        if (!confirm('Excluir anúncio?')) return; 
+        await firebaseStore.deleteAd(id);
+        state.ads = state.ads.filter(x=>x.id!==id); 
+      }
+      if (act==='edit') {
+        const t = prompt('Título', ad.titulo); if (t===null) return; ad.titulo=t.trim()||ad.titulo;
+        const c = prompt('Categoria', ad.categoria); if (c!==null) ad.categoria=c.trim()||ad.categoria;
+        const o = prompt('Operador', ad.operador||''); if (o!==null) ad.operador=o.trim();
+        await firebaseStore.updateAd(id, { titulo: ad.titulo, categoria: ad.categoria, operador: ad.operador });
+      }
+      if (act==='chgstatus') { 
+        ad.status = e.target.value; 
+        await firebaseStore.updateAd(id, { status: ad.status });
+      }
+      renderAds(); renderDashboard();
+    }
+    
+    // ... (O restante das funções de renderização como Dashboard, Relatórios, etc. continuam iguais)
+    let chartContaToday, chartTrend;
+    function renderDashboard() {
+      // KPIs
+      const hojeS = fmt.startOfDay(new Date());
+      const amanhaS = fmt.endOfDay(new Date());
+      const adsHoje = state.ads.filter(a=>{ const d=new Date(a.data); return d>=hojeS && d<=amanhaS; });
+      document.getElementById('kpi-total-hoje').textContent = adsHoje.length;
+      const contasAtivas = state.accounts.filter(a=>a.status==='ativo').length; document.getElementById('kpi-contas-ativas').textContent = contasAtivas;
+      const counts = contagemPorContaEmDia(new Date());
+      const somaLimites = state.accounts.reduce((s,a)=>s+(a.limite||0),0);
+      const somaUsos = Object.values(counts).reduce((s,n)=>s+n,0);
+      document.getElementById('kpi-limites').textContent = `${somaUsos}/${somaLimites||'∞'}`;
+      const near = state.accounts.some(a=>{
+        const u = contagensHojePorConta(a.id);
+        const nearG = a.limite ? u.geral>=Math.floor(a.limite*0.8) : false;
+        const nearI = a.limiteIphone ? u.iph>=Math.floor(a.limiteIphone*0.8) : false;
+        const nearO = a.limiteOutros ? u.out>=Math.floor(a.limiteOutros*0.8) : false;
+        return nearG || nearI || nearO;
+      });
+      const alerta = document.getElementById('alerta-limites'); if (near) alerta.classList.remove('hidden'); else alerta.classList.add('hidden');
+
+      // Metas do dia
+      const iphHoje = adsHoje.filter(a=>isIphoneCategoria(a.categoria)).length;
+      const outHoje = adsHoje.length - iphHoje;
+      const metaI = state.settings.metaIphone || 0; const metaO = state.settings.metaOutros || 0;
+      const pctI = metaI? Math.min(100, Math.round(iphHoje/metaI*100)) : 0;
+      const pctO = metaO? Math.min(100, Math.round(outHoje/metaO*100)) : 0;
+      document.getElementById('prog-iphone').style.width = pctI+'%';
+      document.getElementById('prog-outros').style.width = pctO+'%';
+      document.getElementById('meta-iphone-txt').textContent = `${iphHoje}/${metaI}`;
+      document.getElementById('meta-outros-txt').textContent = `${outHoje}/${metaO}`;
+
+      // Chart por conta (hoje)
+      const ctx1 = document.getElementById('chartPorConta');
+      const labels1 = state.accounts.map(a=>a.nome);
+      const data1 = state.accounts.map(a=>counts[a.id]||0);
+      if (chartContaToday) chartContaToday.destroy();
+      chartContaToday = new Chart(ctx1, {
+        type: 'bar', data: { labels: labels1, datasets: [{ label: 'Hoje', data: data1, backgroundColor: '#38bdf8' }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#93c5fd' } }, y: { ticks: { color: '#93c5fd' } } } }
+      });
+
+      // Tendência 30 dias
+      const days = fmt.rangeDays(fmt.addDays(new Date(), -29), new Date());
+      const byDay = days.map(d=>{ const s=fmt.startOfDay(d), e=fmt.endOfDay(d); return state.ads.filter(a=>{ const x=new Date(a.data); return x>=s&&x<=e; }).length; });
+      const ctx2 = document.getElementById('chartTendencia'); if (chartTrend) chartTrend.destroy();
+      chartTrend = new Chart(ctx2, {
+        type: 'line', data: { labels: days.map(d=>d.toLocaleDateString('pt-BR').slice(0,5)), datasets: [{ label: 'Anúncios', data: byDay, borderColor: '#22c55e', backgroundColor: '#22c55e22', tension: 0.3, fill: true }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#93c5fd' } }, y: { ticks: { color: '#93c5fd' } } } }
+      });
+
+      // Calendário
+      renderCalendar();
+    }
+
+    // Calendário mensal
+    const calTitle = document.getElementById('cal-title');
+    document.getElementById('cal-prev').addEventListener('click',()=>{ shiftMonth(-1); });
+    document.getElementById('cal-next').addEventListener('click',()=>{ shiftMonth(1); });
+
+    function initCalendarView() {
+      const now = new Date(); state.view.calYear = now.getFullYear(); state.view.calMonth = now.getMonth();
+      const wd = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+      document.getElementById('cal-weekdays').innerHTML = wd.map(d=>`<div>${d}</div>`).join('');
+    }
+    function shiftMonth(delta) { let m = state.view.calMonth + delta; let y = state.view.calYear; if (m<0) { m=11; y--; } if (m>11) { m=0; y++; } state.view.calMonth=m; state.view.calYear=y; renderCalendar(); }
+    function renderCalendar() {
+      if (state.view.calYear===null) initCalendarView();
+      const y = state.view.calYear, m = state.view.calMonth;
+      const first = new Date(y, m, 1); const last = new Date(y, m+1, 0);
+      calTitle.textContent = first.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const grid = document.getElementById('calendar'); grid.innerHTML='';
+      const startIdx = (first.getDay());
+      for (let i=0; i<startIdx; i++) grid.appendChild(document.createElement('div'));
+      const today = new Date(); today.setHours(0,0,0,0);
+      for (let d=1; d<=last.getDate(); d++) {
+        const cell = document.createElement('div'); cell.className='cal-cell';
+        const dt = new Date(y, m, d); dt.setHours(0,0,0,0);
+        const s=fmt.startOfDay(dt), e=fmt.endOfDay(dt);
+        const count = state.ads.filter(a=>{ const x=new Date(a.data); return x>=s&&x<=e; }).length;
+        const day = document.createElement('div'); day.className='cal-day'; day.textContent=d;
+        const badge = document.createElement('div'); badge.className='cal-count'; badge.textContent=count;
+        if (dt.getTime()===today.getTime()) cell.classList.add('cal-today');
+        cell.appendChild(day); cell.appendChild(badge); grid.appendChild(cell);
+      }
+    }
+
+    // ----------------------- Relatórios & Analytics -----------------------
+    let chartDia, chartConta;
+    document.getElementById('range-rel').addEventListener('change', (e)=>{
+      const v=e.target.value; const di=document.getElementById('rel-inicio'); const df=document.getElementById('rel-fim'); if (v==='custom') { di.classList.remove('hidden'); df.classList.remove('hidden'); } else { di.classList.add('hidden'); df.classList.add('hidden'); }
+    });
+    document.getElementById('btn-gerar-rel').addEventListener('click', renderRelatorios);
+
+    function periodoRel() {
+      const sel = document.getElementById('range-rel').value; let start, end = fmt.endOfDay(new Date());
+      if (sel==='custom') { const di = document.getElementById('rel-inicio').value; const df = document.getElementById('rel-fim').value; if (!di || !df) { alert('Informe data inicial e final'); return null; } start = fmt.startOfDay(new Date(di)); end = fmt.endOfDay(new Date(df)); }
+      else { const days = parseInt(sel,10); start = fmt.addDays(fmt.startOfDay(new Date()), -(days-1)); }
+      return { start, end };
+    }
+
+    function renderRelatorios() {
+      const pe = periodoRel(); if (!pe) return; const { start, end } = pe;
+      const rows = state.ads.filter(a=>{ const d=new Date(a.data); return d>=start && d<=end; });
+
+      const days = fmt.rangeDays(start, end);
+      const dataByDay = days.map(d=>{ const s=fmt.startOfDay(d), e=fmt.endOfDay(d); return state.ads.filter(a=>{ const x=new Date(a.data); return x>=s&&x<=e; }).length; });
+      const ctx1 = document.getElementById('chartDia'); if (chartDia) chartDia.destroy();
+      chartDia = new Chart(ctx1, { type: 'bar', data: { labels: days.map(d=>d.toLocaleDateString('pt-BR')), datasets: [{ label: 'Anúncios', data: dataByDay, backgroundColor: '#38bdf8' }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#93c5fd' } }, y: { ticks: { color: '#93c5fd' } } } } });
+
+      const byConta = {}; for (const a of rows) byConta[a.contaId]=(byConta[a.contaId]||0)+1;
+      const contasById = Object.fromEntries(state.accounts.map(a=>[a.id,a.nome]));
+      const ctx2 = document.getElementById('chartConta'); if (chartConta) chartConta.destroy();
+      chartConta = new Chart(ctx2, { type: 'doughnut', data: { labels: Object.keys(byConta).map(id=>contasById[id]||id), datasets: [{ data: Object.values(byConta), backgroundColor: ['#22c55e','#38bdf8','#f59e0b','#ef4444','#a78bfa','#fb7185'] }] }, options: { responsive: true, plugins: { legend: { labels: { color: '#93c5fd' } } } } });
+
+      const byOp = {}; for (const a of rows) { const op = (a.operador||'—'); if (!byOp[op]) byOp[op] = { total:0, last:0 }; byOp[op].total++; const t = new Date(a.data).getTime(); if (t>byOp[op].last) byOp[op].last=t; }
+      const opTbody = document.getElementById('op-tbody'); opTbody.innerHTML=''; Object.entries(byOp).sort((a,b)=>b[1].total-a[1].total).forEach(([op,info])=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${op}</td><td>${info.total}</td><td>${info.last?new Date(info.last).toLocaleString('pt-BR'):'-'}</td>`; opTbody.appendChild(tr); });
+
+      const distTbody = document.getElementById('dist-tbody'); distTbody.innerHTML=''; const totalDias = Math.max(1, Math.round((fmt.startOfDay(end)-fmt.startOfDay(start))/86400000)+1);
+      Object.entries(byConta).forEach(([id,total])=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${contasById[id]||id}</td><td>${total}</td><td>${(total/totalDias).toFixed(2)}</td>`; distTbody.appendChild(tr); });
+
+      const relTbody = document.getElementById('rel-tbody'); relTbody.innerHTML=''; rows.sort((a,b)=>new Date(b.data)-new Date(a.data)).forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${fmt.datetime(r.data)}</td><td>${r.titulo}</td><td>${r.categoria}</td><td>${contasById[r.contaId]||r.contaId}</td><td>${r.operador||'—'}</td><td>${r.status}</td>`; relTbody.appendChild(tr); });
+    }
+
+    // Exportações
+    document.getElementById('btn-export-csv').addEventListener('click', ()=>{
+      const pe = periodoRel(); if (!pe) return; const { start, end }=pe;
+      const rows = state.ads.filter(a=>{ const d=new Date(a.data); return d>=start && d<=end; });
+      const contasById = Object.fromEntries(state.accounts.map(a=>[a.id,a.nome]));
+      const header = ['Data','Título','Categoria','Conta','Operador','Status'];
+      const lines = [header.join(',')].concat(rows.map(r=>[
+        '"'+fmt.datetime(r.data)+'"', '"'+r.titulo.replaceAll('"','""')+'"', '"'+r.categoria.replaceAll('"','""')+'"', '"'+(contasById[r.contaId]||r.contaId)+'"', '"'+(r.operador||'')+'"', '"'+r.status+'"'
+      ].join(',')));
+      const blob = new Blob(["\uFEFF"+lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='relatorio.csv'; a.click();
+    });
+
+    document.getElementById('btn-export-xlsx').addEventListener('click', ()=>{
+      const pe = periodoRel(); if (!pe) return; const { start, end }=pe;
+      const rows = state.ads.filter(a=>{ const d=new Date(a.data); return d>=start && d<=end; });
+      const contasById = Object.fromEntries(state.accounts.map(a=>[a.id,a.nome]));
+      const data = rows.map(r=>({ Data: fmt.datetime(r.data), Título: r.titulo, Categoria: r.categoria, Conta: (contasById[r.contaId]||r.contaId), Operador: (r.operador||''), Status: r.status }));
+      const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Relatório'); XLSX.writeFile(wb, 'relatorio.xlsx');
+    });
+
+    // ----------------------- Configurações -----------------------
+    function renderConfig() {
+      document.getElementById('cfg-meta-iphone').value = state.settings.metaIphone || 0;
+      document.getElementById('cfg-meta-outros').value = state.settings.metaOutros || 0;
+      document.getElementById('cfg-limite-iphone').value = state.settings.padraoLimiteIphone || 0;
+      document.getElementById('cfg-limite-outros').value = state.settings.padraoLimiteOutros || 0;
+      document.getElementById('cfg-limite-geral').value = state.settings.padraoLimiteGeral || 0;
+    }
+
+    // NOVO: Evento agora é 'async'
+    document.getElementById('btn-save-cfg').addEventListener('click', async ()=>{
+      const getInt = (id) => parseInt(document.getElementById(id).value||'0',10)||0;
+      state.settings.metaIphone = getInt('cfg-meta-iphone');
+      state.settings.metaOutros = getInt('cfg-meta-outros');
+      state.settings.padraoLimiteIphone = getInt('cfg-limite-iphone');
+      state.settings.padraoLimiteOutros = getInt('cfg-limite-outros');
+      state.settings.padraoLimiteGeral = getInt('cfg-limite-geral');
+      await firebaseStore.saveSettings(state.settings);
+      alert('Configurações salvas.'); renderDashboard();
+    });
+
+    // ----------------------- Backup/Restore (Agora Reset) -----------------------
+    document.getElementById('btn-reset').addEventListener('click', async ()=>{ 
+        if (!confirm('TEM A CERTEZA?\nIsto vai apagar TODOS os dados (contas, anúncios, configurações) permanentemente da nuvem. Esta ação não pode ser desfeita.')) return; 
+        try {
+            await firebaseStore.resetAllData();
+            state.accounts = [];
+            state.ads = [];
+            state.settings = {};
+            setDefaultSettings();
+            init();
+            alert('Todos os dados foram apagados.');
+        } catch (err) {
+            console.error("Erro ao apagar dados:", err);
+            alert("Ocorreu um erro ao apagar os dados.");
+        }
+    });
+
+    // ----------------------- Inicialização -----------------------
+    function initCalendar() { const wd = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; document.getElementById('cal-weekdays').innerHTML = wd.map(d=>`<div>${d}</div>`).join(''); }
+    
+    // NOVO: Função de inicialização agora é 'async' para carregar dados do Firebase
+    async function init() {
+        console.log("A carregar dados do Firebase...");
+        try {
+            const data = await firebaseStore.loadInitialData();
+            state.accounts = data.accounts;
+            state.ads = data.ads;
+            state.settings = data.settings;
+            setDefaultSettings(); // Garante que as configurações padrão existem se não vierem do DB
+            
+            console.log("Dados carregados:", state);
+
+            populateContaSelects();
+            renderDashboard();
+            renderContas();
+            renderAds();
+            initCalendar();
+        } catch (err) {
+            console.error("Falha ao carregar os dados do Firebase:", err);
+            alert("Não foi possível conectar ao banco de dados. Verifique a sua conexão com a internet e a configuração do Firebase.");
+        }
+    }
+    
+    init();
+  </script>
+</body>
+</html>
