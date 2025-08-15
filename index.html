@@ -466,6 +466,7 @@
   </div>
 
   <script>
+    // Configuração do Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyCqJ3D_bv-8UmnwGAk2n8qKb_EMLofUfys",
       authDomain: "olx---ads-ops-dashboard.firebaseapp.com",
@@ -518,12 +519,11 @@
 
     async function findUserByUsername(username) {
         const usersRef = db.collection('users');
-        const query = usersRef.where('nomeFantasia', '==', username.toLowerCase());
+        const query = usersRef.where('nomeFantasia_lower', '==', username.toLowerCase());
         const snapshot = await query.get();
         if (snapshot.empty) {
             return null;
         }
-        // Retorna o primeiro documento encontrado (deve ser único)
         return snapshot.docs[0].data();
     }
     
@@ -590,7 +590,8 @@
                     db.collection('users').doc(user.uid).set({
                         uid: user.uid,
                         email: user.email,
-                        nomeFantasia: username
+                        nomeFantasia: username,
+                        nomeFantasia_lower: username.toLowerCase()
                     });
                 })
                 .catch(error => {
@@ -958,35 +959,12 @@
                     backgroundColor: '#38bdf8'
                 }]
             },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: '#93c5fd'
-                        }
-                    },
-                    y: {
-                        ticks: {
-                            color: '#93c5fd'
-                        }
-                    }
-                }
-            }
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#93c5fd' } }, y: { ticks: { color: '#93c5fd' } } } }
         });
         const days = fmt.rangeDays(fmt.addDays(new Date(), -29), new Date());
         const byDay = days.map(d => {
-            const s = fmt.startOfDay(d),
-                e = fmt.endOfDay(d);
-            return state.ads.filter(a => {
-                const x = new Date(a.data);
-                return x >= s && x <= e;
-            }).length;
+            const s = fmt.startOfDay(d), e = fmt.endOfDay(d);
+            return state.ads.filter(a => { const x = new Date(a.data); return x >= s && x <= e; }).length;
         });
         const ctx2 = document.getElementById('chartTendencia');
         if (chartTrend) chartTrend.destroy();
@@ -1003,37 +981,14 @@
                     fill: true
                 }]
             },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: '#93c5fd'
-                        }
-                    },
-                    y: {
-                        ticks: {
-                            color: '#93c5fd'
-                        }
-                    }
-                }
-            }
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#93c5fd' } }, y: { ticks: { color: '#93c5fd' } } } }
         });
         renderCalendar();
     }
 
     const calTitle = document.getElementById('cal-title');
-    document.getElementById('cal-prev').addEventListener('click', () => {
-        shiftMonth(-1);
-    });
-    document.getElementById('cal-next').addEventListener('click', () => {
-        shiftMonth(1);
-    });
+    document.getElementById('cal-prev').addEventListener('click', () => { shiftMonth(-1); });
+    document.getElementById('cal-next').addEventListener('click', () => { shiftMonth(1); });
 
     function initCalendarView() {
         const now = new Date();
@@ -1046,14 +1001,8 @@
     function shiftMonth(delta) {
         let m = state.view.calMonth + delta;
         let y = state.view.calYear;
-        if (m < 0) {
-            m = 11;
-            y--;
-        }
-        if (m > 11) {
-            m = 0;
-            y++;
-        }
+        if (m < 0) { m = 11; y--; }
+        if (m > 11) { m = 0; y++; }
         state.view.calMonth = m;
         state.view.calYear = y;
         renderCalendar();
@@ -1061,14 +1010,10 @@
 
     function renderCalendar() {
         if (state.view.calYear === null) initCalendarView();
-        const y = state.view.calYear,
-            m = state.view.calMonth;
+        const y = state.view.calYear, m = state.view.calMonth;
         const first = new Date(y, m, 1);
         const last = new Date(y, m + 1, 0);
-        calTitle.textContent = first.toLocaleDateString('pt-BR', {
-            month: 'long',
-            year: 'numeric'
-        });
+        calTitle.textContent = first.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
         const grid = document.getElementById('calendar');
         grid.innerHTML = '';
         const startIdx = (first.getDay());
@@ -1080,12 +1025,8 @@
             cell.className = 'cal-cell';
             const dt = new Date(y, m, d);
             dt.setHours(0, 0, 0, 0);
-            const s = fmt.startOfDay(dt),
-                e = fmt.endOfDay(dt);
-            const count = state.ads.filter(a => {
-                const x = new Date(a.data);
-                return x >= s && x <= e;
-            }).length;
+            const s = fmt.startOfDay(dt), e = fmt.endOfDay(dt);
+            const count = state.ads.filter(a => { const x = new Date(a.data); return x >= s && x <= e; }).length;
             const day = document.createElement('div');
             day.className = 'cal-day';
             day.textContent = d;
@@ -1115,23 +1056,18 @@
     function renderRelatorios() {
       const pe = periodoRel(); if (!pe) return; const { start, end } = pe;
       const rows = state.ads.filter(a=>{ const d=new Date(a.data); return d>=start && d<=end; });
-
       const days = fmt.rangeDays(start, end);
       const dataByDay = days.map(d=>{ const s=fmt.startOfDay(d), e=fmt.endOfDay(d); return state.ads.filter(a=>{ const x=new Date(a.data); return x>=s&&x<=e; }).length; });
       const ctx1 = document.getElementById('chartDia'); if (chartDia) chartDia.destroy();
       chartDia = new Chart(ctx1, { type: 'bar', data: { labels: days.map(d=>d.toLocaleDateString('pt-BR')), datasets: [{ label: 'Anúncios', data: dataByDay, backgroundColor: '#38bdf8' }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#93c5fd' } }, y: { ticks: { color: '#93c5fd' } } } } });
-
       const byConta = {}; for (const a of rows) byConta[a.contaId]=(byConta[a.contaId]||0)+1;
       const contasById = Object.fromEntries(state.accounts.map(a=>[a.id,a.nome]));
       const ctx2 = document.getElementById('chartConta'); if (chartConta) chartConta.destroy();
       chartConta = new Chart(ctx2, { type: 'doughnut', data: { labels: Object.keys(byConta).map(id=>contasById[id]||id), datasets: [{ data: Object.values(byConta), backgroundColor: ['#22c55e','#38bdf8','#f59e0b','#ef4444','#a78bfa','#fb7185'] }] }, options: { responsive: true, plugins: { legend: { labels: { color: '#93c5fd' } } } } });
-
       const byOp = {}; for (const a of rows) { const op = (a.operador||'—'); if (!byOp[op]) byOp[op] = { total:0, last:0 }; byOp[op].total++; const t = new Date(a.data).getTime(); if (t>byOp[op].last) byOp[op].last=t; }
       const opTbody = document.getElementById('op-tbody'); opTbody.innerHTML=''; Object.entries(byOp).sort((a,b)=>b[1].total-a[1].total).forEach(([op,info])=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${op}</td><td>${info.total}</td><td>${info.last?new Date(info.last).toLocaleString('pt-BR'):'-'}</td>`; opTbody.appendChild(tr); });
-
       const distTbody = document.getElementById('dist-tbody'); distTbody.innerHTML=''; const totalDias = Math.max(1, Math.round((fmt.startOfDay(end)-fmt.startOfDay(start))/86400000)+1);
       Object.entries(byConta).forEach(([id,total])=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${contasById[id]||id}</td><td>${total}</td><td>${(total/totalDias).toFixed(2)}</td>`; distTbody.appendChild(tr); });
-
       const relTbody = document.getElementById('rel-tbody'); relTbody.innerHTML=''; rows.sort((a,b)=>new Date(b.data)-new Date(a.data)).forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${fmt.datetime(r.data)}</td><td>${r.titulo}</td><td>${r.categoria}</td><td>${r.valor ? BRL.format(r.valor) : '–'}</td><td>${contasById[r.contaId]||r.contaId}</td><td>${r.operador||'—'}</td><td>${r.status}</td>`; relTbody.appendChild(tr); });
     }
 
@@ -1307,6 +1243,7 @@
       });
     }
 
+    // A função initCalendar ESTÁ AQUI AGORA
     function initCalendar() { 
         const wd = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; 
         document.getElementById('cal-weekdays').innerHTML = wd.map(d=>`<div>${d}</div>`).join(''); 
@@ -1327,7 +1264,7 @@
         renderDashboard();
         renderContas();
         renderAds();
-        initCalendar();
+        initCalendar(); // A chamada está aqui
       } catch (err) {
         console.error("Falha ao carregar os dados do Firebase:", err);
         alert("Não foi possível conectar ao banco de dados. Verifique a sua conexão com a internet e a configuração do Firebase.");
