@@ -9,6 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <style>
     :root {
       --bg: #0f172a;
@@ -24,6 +25,28 @@
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial; background: linear-gradient(180deg, #0b1022, var(--bg)); color: var(--text); }
+    
+    #login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 16px;
+    }
+    .login-box {
+      width: 100%;
+      max-width: 400px;
+      padding: 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px #00000030;
+    }
+    .login-box h2 { text-align: center; margin-top: 0; }
+    .login-box .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .login-box .button-group { display: flex; gap: 10px; }
+    .login-box .error-message { color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; min-height: 18px; }
+
     a { color: var(--accent); text-decoration: none; }
     .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
     header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -55,6 +78,7 @@
     .table-wrapper { max-height: 340px; overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
     input, select, button, textarea { background: #0a1020; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: none; transition: 0.2s; }
     input:focus, select:focus, textarea:focus { border-color: #334155; box-shadow: 0 0 0 3px #38bdf81a; }
+    input:read-only { background-color: #0f172a; cursor: not-allowed; }
     button { cursor: pointer; }
     .btn-primary { background: linear-gradient(90deg, #22c55e, #16a34a); border: none; }
     .btn-secondary { background: #0b1220; border-color: #334155; }
@@ -74,8 +98,6 @@
     .progress { height: 10px; background: #0a1020; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
     .progress > div { height: 100%; background: linear-gradient(90deg, #22c55e, #38bdf8); }
     .hidden { display: none !important; }
-
-    /* Estilos extras para a Calculadora de Precificação */
     .kpi3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; }
     @media (max-width: 640px){ .kpi3{ grid-template-columns:1fr; } }
     .kpi3 .box{ background:#0b1220; border:1px solid var(--border); padding:12px; border-radius:10px; }
@@ -85,7 +107,23 @@
   </style>
 </head>
 <body>
-  <div class="container">
+
+  <div id="login-container">
+    <div class="login-box">
+      <h2>Aceder ao Dashboard</h2>
+      <div class="input-group">
+        <input type="email" id="login-email" placeholder="Email">
+        <input type="password" id="login-password" placeholder="Senha">
+      </div>
+      <div class="button-group">
+        <button class="btn-primary" id="btn-login">Entrar</button>
+        <button class="btn-secondary" id="btn-signup">Criar Conta</button>
+      </div>
+      <div id="login-error" class="error-message"></div>
+    </div>
+  </div>
+
+  <div id="dashboard-container" class="container hidden">
     <header>
       <div class="brand">
         <div class="logo"></div>
@@ -94,14 +132,18 @@
           <div class="muted">Gestão centralizada de contas, anúncios e produtividade diária</div>
         </div>
       </div>
-      <div class="tabs">
+      <div id="user-info" class="hidden" style="display: flex; align-items: center; gap: 10px;">
+        <span id="user-email" class="pill"></span>
+        <button id="btn-logout" class="btn-secondary">Sair</button>
+      </div>
+    </header>
+    <div class="tabs">
         <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
         <button class="tab-btn" data-tab="contas">Contas</button>
         <button class="tab-btn" data-tab="anuncios">Anúncios</button>
         <button class="tab-btn" data-tab="relatorios">Relatórios</button>
         <button class="tab-btn" data-tab="config">Configurações</button>
-      </div>
-    </header>
+    </div>
 
     <section id="tab-dashboard" class="tab card" style="margin-top:12px;">
       <div class="grid grid-3">
@@ -275,7 +317,7 @@
                 <input id="ad-categoria" placeholder="Categoria (ex: iPhone 13)" />
                 <input id="ad-valor" type="text" inputmode="decimal" placeholder="Valor (R$)" />
                 <select id="ad-conta" style="grid-column: span 2;"></select>
-                <input id="ad-operador" placeholder="Operador (opcional)" />
+                <input id="ad-operador" placeholder="Operador" readonly />
                 <select id="ad-status">
                     <option value="publicado">Publicado</option>
                     <option value="pendente">Pendente</option>
@@ -380,7 +422,7 @@
           <table class="table">
             <thead>
               <tr>
-                <th>Data</th><th>Título</th><th>Categoria</th><th>Conta</th><th>Operador</th><th>Status</th>
+                <th>Data</th><th>Título</th><th>Categoria</th><th>Valor</th><th>Conta</th><th>Operador</th><th>Status</th>
               </tr>
             </thead>
             <tbody id="rel-tbody"></tbody>
@@ -434,8 +476,71 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
 
-    // ----------------------- Persistência com Firebase -----------------------
+    const state = { 
+        accounts: [], 
+        ads: [], 
+        settings: {}, 
+        view: { calYear: null, calMonth: null },
+        currentUser: null
+    };
+
+    const loginContainer = document.getElementById('login-container');
+    const dashboardContainer = document.getElementById('dashboard-container');
+    const userInfo = document.getElementById('user-info');
+    const userEmailEl = document.getElementById('user-email');
+    const loginError = document.getElementById('login-error');
+
+    auth.onAuthStateChanged(async user => {
+        if (user) {
+            state.currentUser = user;
+            userEmailEl.textContent = user.email;
+
+            loginContainer.classList.add('hidden');
+            dashboardContainer.classList.remove('hidden');
+            userInfo.classList.remove('hidden');
+
+            const adOperadorField = document.getElementById('ad-operador');
+            if (adOperadorField) {
+                adOperadorField.value = user.email;
+            }
+
+            await init();
+        } else {
+            state.currentUser = null;
+            loginContainer.classList.remove('hidden');
+            dashboardContainer.classList.add('hidden');
+            userInfo.classList.add('hidden');
+        }
+    });
+
+    document.getElementById('btn-login').addEventListener('click', () => {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        loginError.textContent = '';
+        auth.signInWithEmailAndPassword(email, password)
+            .catch(error => {
+                console.error("Erro de login:", error.message);
+                loginError.textContent = "Email ou senha inválidos.";
+            });
+    });
+
+    document.getElementById('btn-signup').addEventListener('click', () => {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        loginError.textContent = '';
+        auth.createUserWithEmailAndPassword(email, password)
+            .catch(error => {
+                console.error("Erro ao criar conta:", error.message);
+                loginError.textContent = error.message;
+            });
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', () => {
+        auth.signOut();
+    });
+
     const firebaseStore = {
       async loadInitialData() {
         const accountsPromise = db.collection('accounts').get();
@@ -459,7 +564,6 @@
       async saveSettings(settingsData) { return await db.collection('settings').doc('global').set(settingsData, { merge: true }); },
     };
 
-    // ----------------------- Utilitários -----------------------
     const fmt = {
       date(d) { return new Date(d).toLocaleDateString('pt-BR'); },
       datetime(d) { return new Date(d).toLocaleString('pt-BR'); },
@@ -479,8 +583,6 @@
       return isNaN(n) ? 0 : n;
     }
 
-    const state = { accounts: [], ads: [], settings: {}, view: { calYear: null, calMonth: null } };
-
     function setDefaultSettings() {
         if (!state.settings.metaIphone) state.settings.metaIphone = 15;
         if (!state.settings.metaOutros) state.settings.metaOutros = 30;
@@ -489,7 +591,6 @@
         if (!state.settings.padraoLimiteGeral) state.settings.padraoLimiteGeral = 0;
     }
 
-    // ----------------------- Helpers de categoria -----------------------
     function isIphoneCategoria(cat) {
       if (!cat) return false;
       const s = cat.toLowerCase();
@@ -515,7 +616,6 @@
       return map;
     }
 
-    // ----------------------- Tabs -----------------------
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -534,7 +634,6 @@
       });
     });
 
-    // ----------------------- Contas -----------------------
     const elContasTbody = document.getElementById('contas-tbody');
     const accNome = document.getElementById('acc-nome');
     const accLimite = document.getElementById('acc-limite');
@@ -621,7 +720,6 @@
       return arr;
     }
 
-    // ----------------------- Anúncios -----------------------
     const adTitulo = document.getElementById('ad-titulo');
     const adCategoria = document.getElementById('ad-categoria');
     const adValor = document.getElementById('ad-valor');
@@ -644,7 +742,7 @@
       const categoria = adCategoria.value.trim();
       const valor = toNumberBRL(adValor.value);
       const contaId = adConta.value;
-      const operador = adOperador.value.trim();
+      const operador = state.currentUser ? state.currentUser.email : 'Desconhecido';
       const data = new Date().toISOString();
       const status = adStatus.value;
       if (!titulo || !categoria || !contaId || valor <= 0) {
@@ -668,7 +766,7 @@
       novo.id = docRef.id;
 
       state.ads.unshift(novo);
-      adTitulo.value=''; adCategoria.value=''; adValor.value=''; adOperador.value=''; adStatus.value='publicado';
+      adTitulo.value=''; adCategoria.value=''; adValor.value=''; adStatus.value='publicado';
       renderAds(); renderDashboard(); renderContas();
     });
 
@@ -745,8 +843,8 @@
         const t = prompt('Título', ad.titulo); if (t!==null) ad.titulo=t.trim()||ad.titulo;
         const c = prompt('Categoria', ad.categoria); if (c!==null) ad.categoria=c.trim()||ad.categoria;
         const v = prompt('Valor (R$)', ad.valor || '0'); if (v!==null) ad.valor = toNumberBRL(v);
-        const o = prompt('Operador', ad.operador||''); if (o!==null) ad.operador=o.trim();
-        await firebaseStore.updateAd(id, { titulo: ad.titulo, categoria: ad.categoria, valor: ad.valor, operador: ad.operador });
+        // Não perguntamos pelo operador, pois ele está ligado a quem criou
+        await firebaseStore.updateAd(id, { titulo: ad.titulo, categoria: ad.categoria, valor: ad.valor });
       }
       if (act==='chgstatus') { 
         ad.status = e.target.value; 
@@ -755,90 +853,193 @@
       renderAds(); renderDashboard();
     }
     
-    // ----------------------- Dashboard (KPIs, Gráficos, Calendário) -----------------------
     let chartContaToday, chartTrend;
     function renderDashboard() {
-      const hojeS = fmt.startOfDay(new Date());
-      const amanhaS = fmt.endOfDay(new Date());
-      const adsHoje = state.ads.filter(a=>{ const d=new Date(a.data); return d>=hojeS && d<=amanhaS; });
-      document.getElementById('kpi-total-hoje').textContent = adsHoje.length;
-      const contasAtivas = state.accounts.filter(a=>a.status==='ativo').length; document.getElementById('kpi-contas-ativas').textContent = contasAtivas;
-      const counts = contagemPorContaEmDia(new Date());
-      const somaLimites = state.accounts.reduce((s,a)=>s+(a.limite||0),0);
-      const somaUsos = Object.values(counts).reduce((s,n)=>s+n,0);
-      document.getElementById('kpi-limites').textContent = `${somaUsos}/${somaLimites||'∞'}`;
-      const near = state.accounts.some(a=>{
-        const u = contagensHojePorConta(a.id);
-        const nearG = a.limite ? u.geral>=Math.floor(a.limite*0.8) : false;
-        const nearI = a.limiteIphone ? u.iph>=Math.floor(a.limiteIphone*0.8) : false;
-        const nearO = a.limiteOutros ? u.out>=Math.floor(a.limiteOutros*0.8) : false;
-        return nearG || nearI || nearO;
-      });
-      const alerta = document.getElementById('alerta-limites'); if (near) alerta.classList.remove('hidden'); else alerta.classList.add('hidden');
-
-      const iphHoje = adsHoje.filter(a=>isIphoneCategoria(a.categoria)).length;
-      const outHoje = adsHoje.length - iphHoje;
-      const metaI = state.settings.metaIphone || 0; const metaO = state.settings.metaOutros || 0;
-      const pctI = metaI? Math.min(100, Math.round(iphHoje/metaI*100)) : 0;
-      const pctO = metaO? Math.min(100, Math.round(outHoje/metaO*100)) : 0;
-      document.getElementById('prog-iphone').style.width = pctI+'%';
-      document.getElementById('prog-outros').style.width = pctO+'%';
-      document.getElementById('meta-iphone-txt').textContent = `${iphHoje}/${metaI}`;
-      document.getElementById('meta-outros-txt').textContent = `${outHoje}/${metaO}`;
-
-      const ctx1 = document.getElementById('chartPorConta');
-      const labels1 = state.accounts.map(a=>a.nome);
-      const data1 = state.accounts.map(a=>counts[a.id]||0);
-      if (chartContaToday) chartContaToday.destroy();
-      chartContaToday = new Chart(ctx1, {
-        type: 'bar', data: { labels: labels1, datasets: [{ label: 'Hoje', data: data1, backgroundColor: '#38bdf8' }] },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#93c5fd' } }, y: { ticks: { color: '#93c5fd' } } } }
-      });
-
-      const days = fmt.rangeDays(fmt.addDays(new Date(), -29), new Date());
-      const byDay = days.map(d=>{ const s=fmt.startOfDay(d), e=fmt.endOfDay(d); return state.ads.filter(a=>{ const x=new Date(a.data); return x>=s&&x<=e; }).length; });
-      const ctx2 = document.getElementById('chartTendencia'); if (chartTrend) chartTrend.destroy();
-      chartTrend = new Chart(ctx2, {
-        type: 'line', data: { labels: days.map(d=>d.toLocaleDateString('pt-BR').slice(0,5)), datasets: [{ label: 'Anúncios', data: byDay, borderColor: '#22c55e', backgroundColor: '#22c55e22', tension: 0.3, fill: true }] },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#93c5fd' } }, y: { ticks: { color: '#93c5fd' } } } }
-      });
-
-      renderCalendar();
+        const hojeS = fmt.startOfDay(new Date());
+        const amanhaS = fmt.endOfDay(new Date());
+        const adsHoje = state.ads.filter(a => { const d = new Date(a.data); return d >= hojeS && d <= amanhaS; });
+        document.getElementById('kpi-total-hoje').textContent = adsHoje.length;
+        const contasAtivas = state.accounts.filter(a => a.status === 'ativo').length;
+        document.getElementById('kpi-contas-ativas').textContent = contasAtivas;
+        const counts = contagemPorContaEmDia(new Date());
+        const somaLimites = state.accounts.reduce((s, a) => s + (a.limite || 0), 0);
+        const somaUsos = Object.values(counts).reduce((s, n) => s + n, 0);
+        document.getElementById('kpi-limites').textContent = `${somaUsos}/${somaLimites || '∞'}`;
+        const near = state.accounts.some(a => {
+            const u = contagensHojePorConta(a.id);
+            const nearG = a.limite ? u.geral >= Math.floor(a.limite * 0.8) : false;
+            const nearI = a.limiteIphone ? u.iph >= Math.floor(a.limiteIphone * 0.8) : false;
+            const nearO = a.limiteOutros ? u.out >= Math.floor(a.limiteOutros * 0.8) : false;
+            return nearG || nearI || nearO;
+        });
+        const alerta = document.getElementById('alerta-limites');
+        if (near) alerta.classList.remove('hidden');
+        else alerta.classList.add('hidden');
+        const iphHoje = adsHoje.filter(a => isIphoneCategoria(a.categoria)).length;
+        const outHoje = adsHoje.length - iphHoje;
+        const metaI = state.settings.metaIphone || 0;
+        const metaO = state.settings.metaOutros || 0;
+        const pctI = metaI ? Math.min(100, Math.round(iphHoje / metaI * 100)) : 0;
+        const pctO = metaO ? Math.min(100, Math.round(outHoje / metaO * 100)) : 0;
+        document.getElementById('prog-iphone').style.width = pctI + '%';
+        document.getElementById('prog-outros').style.width = pctO + '%';
+        document.getElementById('meta-iphone-txt').textContent = `${iphHoje}/${metaI}`;
+        document.getElementById('meta-outros-txt').textContent = `${outHoje}/${metaO}`;
+        const ctx1 = document.getElementById('chartPorConta');
+        const labels1 = state.accounts.map(a => a.nome);
+        const data1 = state.accounts.map(a => counts[a.id] || 0);
+        if (chartContaToday) chartContaToday.destroy();
+        chartContaToday = new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: labels1,
+                datasets: [{
+                    label: 'Hoje',
+                    data: data1,
+                    backgroundColor: '#38bdf8'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: '#93c5fd'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#93c5fd'
+                        }
+                    }
+                }
+            }
+        });
+        const days = fmt.rangeDays(fmt.addDays(new Date(), -29), new Date());
+        const byDay = days.map(d => {
+            const s = fmt.startOfDay(d),
+                e = fmt.endOfDay(d);
+            return state.ads.filter(a => {
+                const x = new Date(a.data);
+                return x >= s && x <= e;
+            }).length;
+        });
+        const ctx2 = document.getElementById('chartTendencia');
+        if (chartTrend) chartTrend.destroy();
+        chartTrend = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: days.map(d => d.toLocaleDateString('pt-BR').slice(0, 5)),
+                datasets: [{
+                    label: 'Anúncios',
+                    data: byDay,
+                    borderColor: '#22c55e',
+                    backgroundColor: '#22c55e22',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: '#93c5fd'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#93c5fd'
+                        }
+                    }
+                }
+            }
+        });
+        renderCalendar();
     }
 
-    // Calendário mensal
     const calTitle = document.getElementById('cal-title');
-    document.getElementById('cal-prev').addEventListener('click',()=>{ shiftMonth(-1); });
-    document.getElementById('cal-next').addEventListener('click',()=>{ shiftMonth(1); });
+    document.getElementById('cal-prev').addEventListener('click', () => {
+        shiftMonth(-1);
+    });
+    document.getElementById('cal-next').addEventListener('click', () => {
+        shiftMonth(1);
+    });
 
     function initCalendarView() {
-      const now = new Date(); state.view.calYear = now.getFullYear(); state.view.calMonth = now.getMonth();
-      const wd = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-      document.getElementById('cal-weekdays').innerHTML = wd.map(d=>`<div>${d}</div>`).join('');
-    }
-    function shiftMonth(delta) { let m = state.view.calMonth + delta; let y = state.view.calYear; if (m<0) { m=11; y--; } if (m>11) { m=0; y++; } state.view.calMonth=m; state.view.calYear=y; renderCalendar(); }
-    function renderCalendar() {
-      if (state.view.calYear===null) initCalendarView();
-      const y = state.view.calYear, m = state.view.calMonth;
-      const first = new Date(y, m, 1); const last = new Date(y, m+1, 0);
-      calTitle.textContent = first.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-      const grid = document.getElementById('calendar'); grid.innerHTML='';
-      const startIdx = (first.getDay());
-      for (let i=0; i<startIdx; i++) grid.appendChild(document.createElement('div'));
-      const today = new Date(); today.setHours(0,0,0,0);
-      for (let d=1; d<=last.getDate(); d++) {
-        const cell = document.createElement('div'); cell.className='cal-cell';
-        const dt = new Date(y, m, d); dt.setHours(0,0,0,0);
-        const s=fmt.startOfDay(dt), e=fmt.endOfDay(dt);
-        const count = state.ads.filter(a=>{ const x=new Date(a.data); return x>=s&&x<=e; }).length;
-        const day = document.createElement('div'); day.className='cal-day'; day.textContent=d;
-        const badge = document.createElement('div'); badge.className='cal-count'; badge.textContent=count;
-        if (dt.getTime()===today.getTime()) cell.classList.add('cal-today');
-        cell.appendChild(day); cell.appendChild(badge); grid.appendChild(cell);
-      }
+        const now = new Date();
+        state.view.calYear = now.getFullYear();
+        state.view.calMonth = now.getMonth();
+        const wd = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        document.getElementById('cal-weekdays').innerHTML = wd.map(d => `<div>${d}</div>`).join('');
     }
 
-    // ----------------------- Relatórios & Analytics -----------------------
+    function shiftMonth(delta) {
+        let m = state.view.calMonth + delta;
+        let y = state.view.calYear;
+        if (m < 0) {
+            m = 11;
+            y--;
+        }
+        if (m > 11) {
+            m = 0;
+            y++;
+        }
+        state.view.calMonth = m;
+        state.view.calYear = y;
+        renderCalendar();
+    }
+
+    function renderCalendar() {
+        if (state.view.calYear === null) initCalendarView();
+        const y = state.view.calYear,
+            m = state.view.calMonth;
+        const first = new Date(y, m, 1);
+        const last = new Date(y, m + 1, 0);
+        calTitle.textContent = first.toLocaleDateString('pt-BR', {
+            month: 'long',
+            year: 'numeric'
+        });
+        const grid = document.getElementById('calendar');
+        grid.innerHTML = '';
+        const startIdx = (first.getDay());
+        for (let i = 0; i < startIdx; i++) grid.appendChild(document.createElement('div'));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (let d = 1; d <= last.getDate(); d++) {
+            const cell = document.createElement('div');
+            cell.className = 'cal-cell';
+            const dt = new Date(y, m, d);
+            dt.setHours(0, 0, 0, 0);
+            const s = fmt.startOfDay(dt),
+                e = fmt.endOfDay(dt);
+            const count = state.ads.filter(a => {
+                const x = new Date(a.data);
+                return x >= s && x <= e;
+            }).length;
+            const day = document.createElement('div');
+            day.className = 'cal-day';
+            day.textContent = d;
+            const badge = document.createElement('div');
+            badge.className = 'cal-count';
+            badge.textContent = count;
+            if (dt.getTime() === today.getTime()) cell.classList.add('cal-today');
+            cell.appendChild(day);
+            cell.appendChild(badge);
+            grid.appendChild(cell);
+        }
+    }
+
     let chartDia, chartConta;
     document.getElementById('range-rel').addEventListener('change', (e)=>{
       const v=e.target.value; const di=document.getElementById('rel-inicio'); const df=document.getElementById('rel-fim'); if (v==='custom') { di.classList.remove('hidden'); df.classList.remove('hidden'); } else { di.classList.add('hidden'); df.classList.add('hidden'); }
@@ -872,10 +1073,9 @@
       const distTbody = document.getElementById('dist-tbody'); distTbody.innerHTML=''; const totalDias = Math.max(1, Math.round((fmt.startOfDay(end)-fmt.startOfDay(start))/86400000)+1);
       Object.entries(byConta).forEach(([id,total])=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${contasById[id]||id}</td><td>${total}</td><td>${(total/totalDias).toFixed(2)}</td>`; distTbody.appendChild(tr); });
 
-      const relTbody = document.getElementById('rel-tbody'); relTbody.innerHTML=''; rows.sort((a,b)=>new Date(b.data)-new Date(a.data)).forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${fmt.datetime(r.data)}</td><td>${r.titulo}</td><td>${r.categoria}</td><td>${contasById[r.contaId]||r.contaId}</td><td>${r.operador||'—'}</td><td>${r.status}</td>`; relTbody.appendChild(tr); });
+      const relTbody = document.getElementById('rel-tbody'); relTbody.innerHTML=''; rows.sort((a,b)=>new Date(b.data)-new Date(a.data)).forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${fmt.datetime(r.data)}</td><td>${r.titulo}</td><td>${r.categoria}</td><td>${r.valor ? BRL.format(r.valor) : '–'}</td><td>${contasById[r.contaId]||r.contaId}</td><td>${r.operador||'—'}</td><td>${r.status}</td>`; relTbody.appendChild(tr); });
     }
 
-    // Exportações
     document.getElementById('btn-export-csv').addEventListener('click', ()=>{
       const pe = periodoRel(); if (!pe) return; const { start, end }=pe;
       const rows = state.ads.filter(a=>{ const d=new Date(a.data); return d>=start && d<=end; });
@@ -910,7 +1110,6 @@
       const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Relatório'); XLSX.writeFile(wb, 'relatorio.xlsx');
     });
 
-    // ----------------------- Configurações -----------------------
     function renderConfig() {
       document.getElementById('cfg-meta-iphone').value = state.settings.metaIphone || 0;
       document.getElementById('cfg-meta-outros').value = state.settings.metaOutros || 0;
@@ -929,7 +1128,6 @@
       alert('Configurações salvas.'); renderDashboard();
     });
 
-    // ----------------------- Calculadora de Precificação -----------------------
     const PC_LS_KEY = 'olx_precificacao_regras_v1';
     const pcDefaultRules = {
       'iPhone': { nome:'iPhone', default_margin: 0.25 },
@@ -1050,7 +1248,6 @@
       });
     }
 
-    // ----------------------- Inicialização -----------------------
     function initCalendar() { const wd = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; document.getElementById('cal-weekdays').innerHTML = wd.map(d=>`<div>${d}</div>`).join(''); }
     
     async function init() {
@@ -1074,8 +1271,6 @@
         alert("Não foi possível conectar ao banco de dados. Verifique a sua conexão com a internet e a configuração do Firebase.");
       }
     }
-    
-    init();
   </script>
 </body>
 </html>
