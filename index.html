@@ -113,8 +113,7 @@
     <div class="login-box">
       <h2 id="login-title">Aceder ao Dashboard</h2>
       <div class="input-group">
-        <input type="text" id="login-username" placeholder="Nome de Fantasia">
-        <input type="email" id="login-email" placeholder="Email (necessário para o registo)">
+        <input type="text" id="login-username" placeholder="User">
         <input type="password" id="login-password" placeholder="Senha">
       </div>
       <div class="button-group">
@@ -496,7 +495,6 @@
     const loginError = document.getElementById('login-error');
     const loginTitle = document.getElementById('login-title');
     const loginUsernameInput = document.getElementById('login-username');
-    const loginEmailInput = document.getElementById('login-email');
     const loginPasswordInput = document.getElementById('login-password');
     const mainActionButton = document.getElementById('btn-main-action');
     const switchModeLink = document.getElementById('switch-mode-link');
@@ -507,12 +505,10 @@
         loginError.textContent = '';
         if (isLoginMode) {
             loginTitle.textContent = 'Aceder ao Dashboard';
-            loginEmailInput.classList.add('hidden');
             mainActionButton.textContent = 'Entrar';
             switchModeLink.textContent = 'Ainda não tem conta? Crie uma aqui.';
         } else {
             loginTitle.textContent = 'Criar Nova Conta';
-            loginEmailInput.classList.remove('hidden');
             mainActionButton.textContent = 'Criar Conta';
             switchModeLink.textContent = 'Já tem conta? Entre aqui.';
         }
@@ -560,7 +556,6 @@
 
     mainActionButton.addEventListener('click', async () => {
         const username = loginUsernameInput.value.trim();
-        const email = loginEmailInput.value.trim();
         const password = loginPasswordInput.value;
         loginError.textContent = '';
 
@@ -578,30 +573,29 @@
                     loginError.textContent = "Senha incorreta.";
                 });
         } else {
-            if (!username || !email || !password) return loginError.textContent = 'Preencha todos os campos.';
+            if (!username || !password) return loginError.textContent = 'Preencha o User e a Senha.';
             if (password.length < 6) return loginError.textContent = 'A senha deve ter no mínimo 6 caracteres.';
 
             const existingUser = await findUserByUsername(username);
             if (existingUser) {
-                return loginError.textContent = 'Este nome de fantasia já está em uso.';
+                return loginError.textContent = 'Este User já está em uso.';
             }
+            
+            // Gera um email falso para o Firebase
+            const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@adsdashboard.local`;
 
             auth.createUserWithEmailAndPassword(email, password)
                 .then(userCredential => {
                     const user = userCredential.user;
                     db.collection('users').doc(user.uid).set({
                         uid: user.uid,
-                        email: user.email,
-                        nomeFantasia: username.toLowerCase()
+                        email: user.email, // Guarda o email falso
+                        nomeFantasia: username
                     });
                 })
                 .catch(error => {
                     console.error("Erro ao criar conta:", error);
-                    if (error.code === 'auth/email-already-in-use') {
-                        loginError.textContent = 'Este email já está registado.';
-                    } else {
-                        loginError.textContent = 'Erro ao criar conta.';
-                    }
+                    loginError.textContent = 'Erro ao criar conta. Tente outro User.';
                 });
         }
     });
