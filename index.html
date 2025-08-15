@@ -466,7 +466,6 @@
   </div>
 
   <script>
-    // Configuração do Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyCqJ3D_bv-8UmnwGAk2n8qKb_EMLofUfys",
       authDomain: "olx---ads-ops-dashboard.firebaseapp.com",
@@ -524,6 +523,7 @@
         if (snapshot.empty) {
             return null;
         }
+        // Retorna o primeiro documento encontrado (deve ser único)
         return snapshot.docs[0].data();
     }
     
@@ -581,7 +581,8 @@
                 return loginError.textContent = 'Este User já está em uso.';
             }
             
-            const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@adsdashboard.local`;
+            const randomPart = Date.now().toString(36) + Math.random().toString(36).substring(2);
+            const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}-${randomPart}@adsdashboard.local`;
 
             auth.createUserWithEmailAndPassword(email, password)
                 .then(userCredential => {
@@ -1306,6 +1307,11 @@
       });
     }
 
+    function initCalendar() { 
+        const wd = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; 
+        document.getElementById('cal-weekdays').innerHTML = wd.map(d=>`<div>${d}</div>`).join(''); 
+    }
+    
     async function init() {
       console.log("A carregar dados do Firebase...");
       try {
