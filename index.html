@@ -560,11 +560,11 @@
         loginError.textContent = '';
 
         if (isLoginMode) {
-            if (!username || !password) return loginError.textContent = 'Preencha o nome de fantasia e a senha.';
+            if (!username || !password) return loginError.textContent = 'Preencha o User e a Senha.';
             
             const userData = await findUserByUsername(username);
             if (!userData) {
-                return loginError.textContent = 'Nome de fantasia não encontrado.';
+                return loginError.textContent = 'User não encontrado.';
             }
 
             auth.signInWithEmailAndPassword(userData.email, password)
@@ -581,7 +581,6 @@
                 return loginError.textContent = 'Este User já está em uso.';
             }
             
-            // Gera um email falso para o Firebase
             const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@adsdashboard.local`;
 
             auth.createUserWithEmailAndPassword(email, password)
@@ -589,7 +588,7 @@
                     const user = userCredential.user;
                     db.collection('users').doc(user.uid).set({
                         uid: user.uid,
-                        email: user.email, // Guarda o email falso
+                        email: user.email,
                         nomeFantasia: username
                     });
                 })
