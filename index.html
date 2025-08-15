@@ -44,8 +44,9 @@
     }
     .login-box h2 { text-align: center; margin-top: 0; }
     .login-box .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-    .login-box .button-group { display: flex; gap: 10px; }
+    .login-box .button-group { display: flex; flex-direction: column; gap: 10px; }
     .login-box .error-message { color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; min-height: 18px; }
+    .login-box .switch-mode { color: var(--accent); text-decoration: none; font-size: 13px; text-align: center; cursor: pointer; margin-top: 8px;}
 
     a { color: var(--accent); text-decoration: none; }
     .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
@@ -110,16 +111,17 @@
 
   <div id="login-container">
     <div class="login-box">
-      <h2>Aceder ao Dashboard</h2>
+      <h2 id="login-title">Aceder ao Dashboard</h2>
       <div class="input-group">
-        <input type="email" id="login-email" placeholder="Email">
+        <input type="text" id="login-username" placeholder="Nome de Fantasia">
+        <input type="email" id="login-email" placeholder="Email (necessário para o registo)">
         <input type="password" id="login-password" placeholder="Senha">
       </div>
       <div class="button-group">
-        <button class="btn-primary" id="btn-login">Entrar</button>
-        <button class="btn-secondary" id="btn-signup">Criar Conta</button>
+        <button class="btn-primary" id="btn-main-action">Entrar</button>
       </div>
       <div id="login-error" class="error-message"></div>
+      <a id="switch-mode-link" class="switch-mode">Ainda não tem conta? Crie uma aqui.</a>
     </div>
   </div>
 
@@ -133,7 +135,7 @@
         </div>
       </div>
       <div id="user-info" class="hidden" style="display: flex; align-items: center; gap: 10px;">
-        <span id="user-email" class="pill"></span>
+        <span id="user-name-display" class="pill"></span>
         <button id="btn-logout" class="btn-secondary">Sair</button>
       </div>
     </header>
@@ -144,7 +146,7 @@
         <button class="tab-btn" data-tab="relatorios">Relatórios</button>
         <button class="tab-btn" data-tab="config">Configurações</button>
     </div>
-
+    
     <section id="tab-dashboard" class="tab card" style="margin-top:12px;">
       <div class="grid grid-3">
         <div class="card">
@@ -483,19 +485,59 @@
         ads: [], 
         settings: {}, 
         view: { calYear: null, calMonth: null },
-        currentUser: null
+        currentUser: null,
+        currentUserProfile: null
     };
-
+    
     const loginContainer = document.getElementById('login-container');
     const dashboardContainer = document.getElementById('dashboard-container');
     const userInfo = document.getElementById('user-info');
-    const userEmailEl = document.getElementById('user-email');
+    const userNameDisplay = document.getElementById('user-name-display');
     const loginError = document.getElementById('login-error');
+    const loginTitle = document.getElementById('login-title');
+    const loginUsernameInput = document.getElementById('login-username');
+    const loginEmailInput = document.getElementById('login-email');
+    const loginPasswordInput = document.getElementById('login-password');
+    const mainActionButton = document.getElementById('btn-main-action');
+    const switchModeLink = document.getElementById('switch-mode-link');
+    let isLoginMode = true;
 
+    function setLoginMode(loginMode) {
+        isLoginMode = loginMode;
+        loginError.textContent = '';
+        if (isLoginMode) {
+            loginTitle.textContent = 'Aceder ao Dashboard';
+            loginEmailInput.classList.add('hidden');
+            mainActionButton.textContent = 'Entrar';
+            switchModeLink.textContent = 'Ainda não tem conta? Crie uma aqui.';
+        } else {
+            loginTitle.textContent = 'Criar Nova Conta';
+            loginEmailInput.classList.remove('hidden');
+            mainActionButton.textContent = 'Criar Conta';
+            switchModeLink.textContent = 'Já tem conta? Entre aqui.';
+        }
+    }
+    setLoginMode(true);
+
+    switchModeLink.addEventListener('click', () => setLoginMode(!isLoginMode));
+
+    async function findUserByUsername(username) {
+        const usersRef = db.collection('users');
+        const query = usersRef.where('nomeFantasia', '==', username.toLowerCase());
+        const snapshot = await query.get();
+        if (snapshot.empty) {
+            return null;
+        }
+        return snapshot.docs[0].data();
+    }
+    
     auth.onAuthStateChanged(async user => {
         if (user) {
+            const userProfileDoc = await db.collection('users').doc(user.uid).get();
             state.currentUser = user;
-            userEmailEl.textContent = user.email;
+            state.currentUserProfile = userProfileDoc.exists ? userProfileDoc.data() : { email: user.email, nomeFantasia: user.email.split('@')[0]};
+            
+            userNameDisplay.textContent = `Olá, ${state.currentUserProfile.nomeFantasia}`;
 
             loginContainer.classList.add('hidden');
             dashboardContainer.classList.remove('hidden');
@@ -503,38 +545,65 @@
 
             const adOperadorField = document.getElementById('ad-operador');
             if (adOperadorField) {
-                adOperadorField.value = user.email;
+                adOperadorField.value = state.currentUserProfile.nomeFantasia;
             }
 
             await init();
         } else {
             state.currentUser = null;
+            state.currentUserProfile = null;
             loginContainer.classList.remove('hidden');
             dashboardContainer.classList.add('hidden');
             userInfo.classList.add('hidden');
         }
     });
 
-    document.getElementById('btn-login').addEventListener('click', () => {
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
+    mainActionButton.addEventListener('click', async () => {
+        const username = loginUsernameInput.value.trim();
+        const email = loginEmailInput.value.trim();
+        const password = loginPasswordInput.value;
         loginError.textContent = '';
-        auth.signInWithEmailAndPassword(email, password)
-            .catch(error => {
-                console.error("Erro de login:", error.message);
-                loginError.textContent = "Email ou senha inválidos.";
-            });
-    });
 
-    document.getElementById('btn-signup').addEventListener('click', () => {
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
-        loginError.textContent = '';
-        auth.createUserWithEmailAndPassword(email, password)
-            .catch(error => {
-                console.error("Erro ao criar conta:", error.message);
-                loginError.textContent = error.message;
-            });
+        if (isLoginMode) {
+            if (!username || !password) return loginError.textContent = 'Preencha o nome de fantasia e a senha.';
+            
+            const userData = await findUserByUsername(username);
+            if (!userData) {
+                return loginError.textContent = 'Nome de fantasia não encontrado.';
+            }
+
+            auth.signInWithEmailAndPassword(userData.email, password)
+                .catch(error => {
+                    console.error("Erro de login:", error);
+                    loginError.textContent = "Senha incorreta.";
+                });
+        } else {
+            if (!username || !email || !password) return loginError.textContent = 'Preencha todos os campos.';
+            if (password.length < 6) return loginError.textContent = 'A senha deve ter no mínimo 6 caracteres.';
+
+            const existingUser = await findUserByUsername(username);
+            if (existingUser) {
+                return loginError.textContent = 'Este nome de fantasia já está em uso.';
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    const user = userCredential.user;
+                    db.collection('users').doc(user.uid).set({
+                        uid: user.uid,
+                        email: user.email,
+                        nomeFantasia: username.toLowerCase()
+                    });
+                })
+                .catch(error => {
+                    console.error("Erro ao criar conta:", error);
+                    if (error.code === 'auth/email-already-in-use') {
+                        loginError.textContent = 'Este email já está registado.';
+                    } else {
+                        loginError.textContent = 'Erro ao criar conta.';
+                    }
+                });
+        }
     });
 
     document.getElementById('btn-logout').addEventListener('click', () => {
@@ -546,13 +615,10 @@
         const accountsPromise = db.collection('accounts').get();
         const adsPromise = db.collection('ads').orderBy('data', 'desc').get();
         const settingsPromise = db.collection('settings').doc('global').get();
-
         const [accountsSnap, adsSnap, settingsDoc] = await Promise.all([accountsPromise, adsPromise, settingsPromise]);
-
         const accounts = accountsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const ads = adsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const settings = settingsDoc.exists ? settingsDoc.data() : {};
-
         return { accounts, ads, settings };
       },
       async addAccount(accountData) { return await db.collection('accounts').add(accountData); },
@@ -742,7 +808,7 @@
       const categoria = adCategoria.value.trim();
       const valor = toNumberBRL(adValor.value);
       const contaId = adConta.value;
-      const operador = state.currentUser ? state.currentUser.email : 'Desconhecido';
+      const operador = state.currentUserProfile ? state.currentUserProfile.nomeFantasia : 'Desconhecido';
       const data = new Date().toISOString();
       const status = adStatus.value;
       if (!titulo || !categoria || !contaId || valor <= 0) {
@@ -843,7 +909,6 @@
         const t = prompt('Título', ad.titulo); if (t!==null) ad.titulo=t.trim()||ad.titulo;
         const c = prompt('Categoria', ad.categoria); if (c!==null) ad.categoria=c.trim()||ad.categoria;
         const v = prompt('Valor (R$)', ad.valor || '0'); if (v!==null) ad.valor = toNumberBRL(v);
-        // Não perguntamos pelo operador, pois ele está ligado a quem criou
         await firebaseStore.updateAd(id, { titulo: ad.titulo, categoria: ad.categoria, valor: ad.valor });
       }
       if (act==='chgstatus') { 
@@ -1248,8 +1313,6 @@
       });
     }
 
-    function initCalendar() { const wd = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; document.getElementById('cal-weekdays').innerHTML = wd.map(d=>`<div>${d}</div>`).join(''); }
-    
     async function init() {
       console.log("A carregar dados do Firebase...");
       try {
