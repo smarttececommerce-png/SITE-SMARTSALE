@@ -35,8 +35,9 @@
     .tab-btn.active { background: #111827; border-color: #334155; }
     .grid { display: grid; gap: 12px; }
     .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    @media (max-width: 980px) { .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+    @media (max-width: 980px) { .grid-3, .grid-2, .grid-4 { grid-template-columns: 1fr; } }
     .card { background: #0b1220; border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: 0 10px 30px #00000022 inset, 0 6px 14px #00000030; }
     .card h3 { margin: 0 0 8px; font-size: 16px; color: #cbd5e1; }
     .muted { color: var(--muted); font-size: 13px; }
@@ -195,90 +196,133 @@
     </section>
 
     <section id="tab-anuncios" class="tab hidden" style="margin-top:12px;">
-      <div class="card">
-        <div class="row" style="align-items:center;">
-          <h3 style="margin:0;">Calculadora de Precificação Rápida</h3>
-          <div class="spacer"></div>
-          <button class="btn-secondary" id="pc-btn-reset">Limpar Calculadora</button>
-          <button class="btn-primary" id="pc-btn-copiar">Copiar para Anúncio</button>
+        <div class="card">
+            <div class="row" style="align-items:center;">
+                <h3 style="margin:0;">Calculadora de Precificação</h3>
+                <div class="spacer"></div>
+                <button class="btn-secondary" id="pc-btn-reset">Limpar</button>
+                <button class="btn-primary" id="pc-btn-copiar">Copiar Título e Valor para Anúncio</button>
+            </div>
+            <div class="grid grid-2" style="margin-top:10px;">
+                <div class="card">
+                    <h3>Entradas</h3>
+                    <div class="row">
+                        <input id="pc-inp-nome" placeholder="Produto (ex.: iPhone 12 128GB)" />
+                        <select id="pc-sel-categoria"></select>
+                    </div>
+                    <div class="row" style="margin-top:8px;">
+                        <input id="pc-inp-custo" inputmode="decimal" placeholder="Custo (R$)" />
+                        <input id="pc-inp-conc-media" inputmode="decimal" placeholder="Média concorrentes (R$)" />
+                    </div>
+                    <div class="row" style="margin-top:8px;">
+                        <input id="pc-inp-conc-min" inputmode="decimal" placeholder="Mín concorrentes (R$)" />
+                        <input id="pc-inp-conc-max" inputmode="decimal" placeholder="Máx concorrentes (R$)" />
+                    </div>
+                    <div class="row" style="margin-top:8px;">
+                        <select id="pc-sel-estrategia">
+                            <option value="abaixo">Abaixo da média</option>
+                            <option value="igualar">Igualar a média</option>
+                            <option value="acima">Acima da média</option>
+                        </select>
+                        <div>
+                            <div class="muted">Intensidade (±%)</div>
+                            <input id="pc-inp-intensidade" type="range" min="0" max="20" value="5" style="width:100%" />
+                            <div class="row" style="justify-content:space-between; color:var(--muted); font-size:12px;">
+                            <span>0%</span><span id="pc-txt-intensidade">5%</span><span>20%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Sugestão de Preço</h3>
+                    <div class="kpi3">
+                        <div class="box"><h4>Preço sugerido</h4><div id="pc-kpi-preco" class="val">R$ 0,00</div></div>
+                        <div class="box"><h4>Margem estimada</h4><div id="pc-kpi-margem" class="val">0%</div></div>
+                        <div class="box"><h4>Lucro estimado</h4><div id="pc-kpi-lucro" class="val">R$ 0,00</div></div>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <div class="row" style="align-items:center;">
+                            <span class="pill">Preço mínimo saudável</span>
+                            <div class="spacer"></div>
+                            <span id="pc-min-saudavel" class="pill">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-top:12px;">
+                        <h3 style="margin:0 0 8px; font-size:14px;">Comparativo com Concorrentes</h3>
+                        <div class="table-wrapper" style="max-height:unset;">
+                            <table class="table">
+                            <thead><tr><th></th><th>Preço (R$)</th><th>Diferença</th></tr></thead>
+                            <tbody>
+                                <tr><td>Média concorrentes</td><td id="pc-cmp-media">–</td><td id="pc-delta-media">–</td></tr>
+                                <tr><td>Mínimo concorrentes</td><td id="pc-cmp-min">–</td><td id="pc-delta-min">–</td></tr>
+                                <tr><td>Máximo concorrentes</td><td id="pc-cmp-max">–</td><td id="pc-delta-max">–</td></tr>
+                            </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="margin-top:12px;">
+                <h3>Explicação do cálculo</h3>
+                <div id="pc-explicacao" class="muted">Informe custo e concorrência para ver o detalhamento.</div>
+            </div>
         </div>
-        <div class="grid grid-2" style="margin-top:10px;">
-          <div class="card">
-            <h3>Entradas</h3>
-            <div class="row">
-              <input id="pc-inp-nome" placeholder="Produto (ex.: iPhone 12 128GB)" />
-              <select id="pc-sel-categoria"></select>
-            </div>
-            <div class="row" style="margin-top:8px;">
-              <input id="pc-inp-custo" inputmode="decimal" placeholder="Custo (R$)" />
-              <input id="pc-inp-conc-media" inputmode="decimal" placeholder="Média concorrentes (R$)" />
-            </div>
-          </div>
-          <div class="card">
-            <h3>Sugestão de Preço</h3>
-            <div class="kpi3">
-              <div class="box"><h4>Preço sugerido</h4><div id="pc-kpi-preco" class="val">R$ 0,00</div></div>
-              <div class="box"><h4>Margem</h4><div id="pc-kpi-margem" class="val">0%</div></div>
-              <div class="box"><h4>Lucro</h4><div id="pc-kpi-lucro" class="val">R$ 0,00</div></div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div class="card" style="margin-top:12px;">
-        <h3>Novo Anúncio</h3>
-        <div class="grid grid-3">
-          <input id="ad-titulo" placeholder="Título" />
-          <input id="ad-categoria" placeholder="Categoria (ex: iPhone 13)" />
-          <select id="ad-conta"></select>
-          <input id="ad-operador" placeholder="Operador (opcional)" />
-          <input id="ad-data" type="datetime-local" />
-          <select id="ad-status">
-            <option value="publicado">Publicado</option>
-            <option value="pendente">Pendente</option>
-            <option value="rejeitado">Rejeitado</option>
-          </select>
+        <div class="card" style="margin-top:12px;">
+            <h3>Novo Anúncio</h3>
+            <div class="grid grid-4">
+                <input id="ad-titulo" placeholder="Título" style="grid-column: span 2;" />
+                <input id="ad-categoria" placeholder="Categoria (ex: iPhone 13)" />
+                <input id="ad-valor" type="text" inputmode="decimal" placeholder="Valor (R$)" />
+                <select id="ad-conta" style="grid-column: span 2;"></select>
+                <input id="ad-operador" placeholder="Operador (opcional)" />
+                <select id="ad-status">
+                    <option value="publicado">Publicado</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="rejeitado">Rejeitado</option>
+                </select>
+            </div>
+            <div class="row" style="margin-top:10px;">
+                <button class="btn-primary" id="btn-add-ad">Registrar Anúncio</button>
+                <div id="alert-limite-conta" class="pill warn hidden">Conta próxima de algum limite de hoje</div>
+            </div>
         </div>
-        <div class="row" style="margin-top:10px;">
-          <button class="btn-primary" id="btn-add-ad">Registrar Anúncio</button>
-          <div id="alert-limite-conta" class="pill warn hidden">Conta próxima de algum limite de hoje</div>
-        </div>
-      </div>
 
-      <div class="card" style="margin-top:12px;">
-        <div class="toolbar">
-          <h3 style="margin:0;">Anúncios</h3>
-          <div class="spacer"></div>
-          <input id="filtro-texto" placeholder="Busca rápida (título, categoria, operador)" style="min-width:220px;" />
-          <select id="filtro-conta"><option value="">Todas as contas</option></select>
-          <select id="filtro-status">
-            <option value="">Todos status</option>
-            <option value="publicado">Publicado</option>
-            <option value="pendente">Pendente</option>
-            <option value="rejeitado">Rejeitado</option>
-          </select>
-          <input id="filtro-data-inicio" type="date" />
-          <input id="filtro-data-fim" type="date" />
-          <button class="btn-secondary" id="btn-aplicar-filtros">Aplicar</button>
-          <button class="btn-secondary" id="btn-limpar-filtros">Limpar</button>
+        <div class="card" style="margin-top:12px;">
+            <div class="toolbar">
+            <h3 style="margin:0;">Anúncios</h3>
+            <div class="spacer"></div>
+            <input id="filtro-texto" placeholder="Busca rápida (título, categoria, operador)" style="min-width:220px;" />
+            <select id="filtro-conta"><option value="">Todas as contas</option></select>
+            <select id="filtro-status">
+                <option value="">Todos status</option>
+                <option value="publicado">Publicado</option>
+                <option value="pendente">Pendente</option>
+                <option value="rejeitado">Rejeitado</option>
+            </select>
+            <input id="filtro-data-inicio" type="date" />
+            <input id="filtro-data-fim" type="date" />
+            <button class="btn-secondary" id="btn-aplicar-filtros">Aplicar</button>
+            <button class="btn-secondary" id="btn-limpar-filtros">Limpar</button>
+            </div>
+            <div class="table-wrapper" style="margin-top:8px;">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Categoria</th>
+                    <th>Valor</th>
+                    <th>Conta</th>
+                    <th>Operador</th>
+                    <th>Data/Hora</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+                </thead>
+                <tbody id="ads-tbody"></tbody>
+            </table>
+            </div>
         </div>
-        <div class="table-wrapper" style="margin-top:8px;">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Título</th>
-                <th>Categoria</th>
-                <th>Conta</th>
-                <th>Operador</th>
-                <th>Data/Hora</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="ads-tbody"></tbody>
-          </table>
-        </div>
-      </div>
     </section>
 
     <section id="tab-relatorios" class="tab hidden" style="margin-top:12px;">
@@ -580,9 +624,9 @@
     // ----------------------- Anúncios -----------------------
     const adTitulo = document.getElementById('ad-titulo');
     const adCategoria = document.getElementById('ad-categoria');
+    const adValor = document.getElementById('ad-valor');
     const adConta = document.getElementById('ad-conta');
     const adOperador = document.getElementById('ad-operador');
-    const adData = document.getElementById('ad-data');
     const adStatus = document.getElementById('ad-status');
 
     function populateContaSelects() {
@@ -598,11 +642,14 @@
     document.getElementById('btn-add-ad').addEventListener('click', async () => {
       const titulo = adTitulo.value.trim();
       const categoria = adCategoria.value.trim();
+      const valor = toNumberBRL(adValor.value);
       const contaId = adConta.value;
       const operador = adOperador.value.trim();
-      const data = adData.value ? new Date(adData.value).toISOString() : new Date().toISOString();
+      const data = new Date().toISOString();
       const status = adStatus.value;
-      if (!titulo || !categoria || !contaId) return alert('Preencha título, categoria e conta.');
+      if (!titulo || !categoria || !contaId || valor <= 0) {
+          return alert('Preencha título, categoria, conta e um valor válido.');
+      }
       const conta = state.accounts.find(a=>a.id===contaId); if (!conta) return alert('Conta inválida');
 
       const usadosHoje = contagensHojePorConta(contaId);
@@ -616,12 +663,12 @@
       else { if (limOut>0 && usadosHoje.out+1>limOut) mensagens.push(`Outros (${usadosHoje.out}/${limOut})`); }
       if (mensagens.length>0) { if (!confirm(`Limite atingido para: ${mensagens.join(' e ')}. Deseja registrar mesmo assim?`)) return; }
 
-      const novo = { titulo, categoria, contaId, operador, data, status };
+      const novo = { titulo, categoria, valor, contaId, operador, data, status };
       const docRef = await firebaseStore.addAd(novo);
       novo.id = docRef.id;
 
       state.ads.unshift(novo);
-      adTitulo.value=''; adCategoria.value=''; adOperador.value=''; adData.value=''; adStatus.value='publicado';
+      adTitulo.value=''; adCategoria.value=''; adValor.value=''; adOperador.value=''; adStatus.value='publicado';
       renderAds(); renderDashboard(); renderContas();
     });
 
@@ -640,7 +687,7 @@
       const st = filtroStatus.value||'';
       const di = filtroInicio.value? fmt.startOfDay(new Date(filtroInicio.value)) : null;
       const df = filtroFim.value? fmt.endOfDay(new Date(filtroFim.value)) : null;
-      const contasById = Object.fromEntries(state.accounts.map(a=>[a.id,a]));
+      const contasById = Object.fromEntries(state.accounts.map(a=>[a.id,a.nome]));
       const rows = state.ads.filter(ad=>{
         const text = (ad.titulo+' '+ad.categoria+' '+(ad.operador||'')).toLowerCase();
         if (q && !text.includes(q)) return false;
@@ -650,11 +697,12 @@
         return true;
       });
       tbody.innerHTML='';
-      for (const ad of rows.slice(0, 1000)) {
+      for (const ad of rows) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${ad.titulo}</td>
           <td>${ad.categoria}</td>
+          <td>${ad.valor ? BRL.format(ad.valor) : '–'}</td>
           <td>${contasById[ad.contaId]?.nome || '-'}</td>
           <td>${ad.operador || '-'}</td>
           <td>${fmt.datetime(ad.data)}</td>
@@ -694,10 +742,11 @@
         state.ads = state.ads.filter(x=>x.id!==id); 
       }
       if (act==='edit') {
-        const t = prompt('Título', ad.titulo); if (t===null) return; ad.titulo=t.trim()||ad.titulo;
+        const t = prompt('Título', ad.titulo); if (t!==null) ad.titulo=t.trim()||ad.titulo;
         const c = prompt('Categoria', ad.categoria); if (c!==null) ad.categoria=c.trim()||ad.categoria;
+        const v = prompt('Valor (R$)', ad.valor || '0'); if (v!==null) ad.valor = toNumberBRL(v);
         const o = prompt('Operador', ad.operador||''); if (o!==null) ad.operador=o.trim();
-        await firebaseStore.updateAd(id, { titulo: ad.titulo, categoria: ad.categoria, operador: ad.operador });
+        await firebaseStore.updateAd(id, { titulo: ad.titulo, categoria: ad.categoria, valor: ad.valor, operador: ad.operador });
       }
       if (act==='chgstatus') { 
         ad.status = e.target.value; 
@@ -831,9 +880,15 @@
       const pe = periodoRel(); if (!pe) return; const { start, end }=pe;
       const rows = state.ads.filter(a=>{ const d=new Date(a.data); return d>=start && d<=end; });
       const contasById = Object.fromEntries(state.accounts.map(a=>[a.id,a.nome]));
-      const header = ['Data','Título','Categoria','Conta','Operador','Status'];
+      const header = ['Data','Título','Categoria','Valor','Conta','Operador','Status'];
       const lines = [header.join(',')].concat(rows.map(r=>[
-        '"'+fmt.datetime(r.data)+'"', '"'+r.titulo.replaceAll('"','""')+'"', '"'+r.categoria.replaceAll('"','""')+'"', '"'+(contasById[r.contaId]||r.contaId)+'"', '"'+(r.operador||'')+'"', '"'+r.status+'"'
+        '"'+fmt.datetime(r.data)+'"', 
+        '"'+r.titulo.replaceAll('"','""')+'"', 
+        '"'+r.categoria.replaceAll('"','""')+'"', 
+        '"'+(r.valor || 0)+'"',
+        '"'+(contasById[r.contaId]||r.contaId)+'"', 
+        '"'+(r.operador||'')+'"', 
+        '"'+r.status+'"'
       ].join(',')));
       const blob = new Blob(["\uFEFF"+lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='relatorio.csv'; a.click();
@@ -843,7 +898,15 @@
       const pe = periodoRel(); if (!pe) return; const { start, end }=pe;
       const rows = state.ads.filter(a=>{ const d=new Date(a.data); return d>=start && d<=end; });
       const contasById = Object.fromEntries(state.accounts.map(a=>[a.id,a.nome]));
-      const data = rows.map(r=>({ Data: fmt.datetime(r.data), Título: r.titulo, Categoria: r.categoria, Conta: (contasById[r.contaId]||r.contaId), Operador: (r.operador||''), Status: r.status }));
+      const data = rows.map(r=>({ 
+          Data: fmt.datetime(r.data), 
+          Título: r.titulo, 
+          Categoria: r.categoria, 
+          Valor: r.valor || 0,
+          Conta: (contasById[r.contaId]||r.contaId), 
+          Operador: (r.operador||''), 
+          Status: r.status 
+      }));
       const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Relatório'); XLSX.writeFile(wb, 'relatorio.xlsx');
     });
 
@@ -892,31 +955,56 @@
     }
 
     function pcCalc(){
-      const categoria = document.getElementById('pc-sel-categoria').value;
-      const custo = toNumberBRL(document.getElementById('pc-inp-custo').value);
-      const concMed = toNumberBRL(document.getElementById('pc-inp-conc-media').value);
-      
-      const regra = pcState.regras[categoria] || pcState.regras['Outros'];
-      const margem = regra.default_margin;
-      
-      const precoMinSaudavel = custo * (1 + margem);
-      let precoSugerido = Math.max(precoMinSaudavel, concMed);
-
-      if(!concMed || concMed < precoMinSaudavel) {
-        precoSugerido = precoMinSaudavel;
-      }
-      
-      const margemObtida = custo > 0 ? (precoSugerido - custo) / custo : 0;
-      const lucro = Math.max(0, precoSugerido - custo);
-      
-      return { precoSugerido, margemObtida, lucro };
+        const categoria = document.getElementById('pc-sel-categoria').value;
+        const custo = toNumberBRL(document.getElementById('pc-inp-custo').value);
+        const concMed = toNumberBRL(document.getElementById('pc-inp-conc-media').value);
+        const concMin = toNumberBRL(document.getElementById('pc-inp-conc-min').value);
+        const concMax = toNumberBRL(document.getElementById('pc-inp-conc-max').value);
+        const estrategia = document.getElementById('pc-sel-estrategia').value;
+        const intensidade = parseInt(document.getElementById('pc-inp-intensidade').value || '0', 10) / 100;
+        
+        const regra = pcState.regras[categoria] || pcState.regras['Outros'];
+        const minMargin = regra.default_margin;
+        const precoMinSaudavel = custo * (1 + minMargin);
+        
+        let alvoConc = concMed;
+        if (estrategia === 'abaixo') alvoConc = concMed * (1 - intensidade);
+        else if (estrategia === 'acima') alvoConc = concMed * (1 + intensidade);
+        
+        let precoSugerido = Math.max(precoMinSaudavel || 0, alvoConc || 0);
+        if (!concMed || concMed === 0) precoSugerido = precoMinSaudavel;
+        if (precoSugerido < custo) precoSugerido = custo;
+        
+        const margemObtida = custo > 0 ? (precoSugerido - custo) / custo : 0;
+        const lucro = Math.max(0, precoSugerido - custo);
+        
+        const deltaMedia = concMed ? precoSugerido - concMed : null;
+        const deltaMin = concMin ? precoSugerido - concMin : null;
+        const deltaMax = concMax ? precoSugerido - concMax : null;
+        
+        return {categoria, custo, concMed, concMin, concMax, estrategia, intensidade, minMargin, precoMinSaudavel, precoSugerido, margemObtida, lucro, deltaMedia, deltaMin, deltaMax};
     }
 
     function pcUpdate(){
       const r = pcCalc();
-      document.getElementById('pc-kpi-preco').textContent = BRL.format(r.precoSugerido || 0);
-      document.getElementById('pc-kpi-margem').textContent = `${(r.margemObtida*100).toFixed(1)}%`;
-      document.getElementById('pc-kpi-lucro').textContent = BRL.format(r.lucro || 0);
+      document.getElementById('pc-txt-intensidade').textContent = `${Math.round((document.getElementById('pc-inp-intensidade').value||0))}%`;
+      document.getElementById('pc-kpi-preco').textContent=BRL.format(r.precoSugerido||0);
+      document.getElementById('pc-kpi-margem').textContent=`${(r.margemObtida*100).toFixed(1)}%`;
+      document.getElementById('pc-kpi-lucro').textContent=BRL.format(r.lucro||0);
+      document.getElementById('pc-min-saudavel').textContent=BRL.format(r.precoMinSaudavel||0);
+
+      document.getElementById('pc-cmp-media').textContent = r.concMed?BRL.format(r.concMed):'–';
+      document.getElementById('pc-cmp-min').textContent = r.concMin?BRL.format(r.concMin):'–';
+      document.getElementById('pc-cmp-max').textContent = r.concMax?BRL.format(r.concMax):'–';
+      document.getElementById('pc-delta-media').textContent = r.deltaMedia==null?'–':`${r.deltaMedia>=0?'+':'-'} ${BRL.format(Math.abs(r.deltaMedia))}`;
+      document.getElementById('pc-delta-min').textContent = r.deltaMin==null?'–':`${r.deltaMin>=0?'+':'-'} ${BRL.format(Math.abs(r.deltaMin))}`;
+      document.getElementById('pc-delta-max').textContent = r.deltaMax==null?'–':`${r.deltaMax>=0?'+':'-'} ${BRL.format(Math.abs(r.deltaMax))}`;
+      
+      const mMinPct=(r.minMargin*100).toFixed(1);
+      const intens=Math.round(r.intensidade*100);
+      const estr=r.estrategia==='abaixo'?`ficar ${intens}% abaixo`:(r.estrategia==='acima'?`ficar ${intens}% acima`:'igualar');
+      const partConc=r.concMed?`A média dos concorrentes é ${BRL.format(r.concMed)} e a estratégia escolhida foi ${estr}.`:`Sem média de concorrentes informada; usamos apenas o mínimo saudável.`;
+      document.getElementById('pc-explicacao').innerHTML = `Para <strong>${r.categoria}</strong> com custo de <strong>${BRL.format(r.custo)}</strong>, a margem mínima de faixa é <strong>${mMinPct}%</strong> (mín. saudável <strong>${BRL.format(r.precoMinSaudavel)}</strong>). ${partConc} Preço sugerido: <strong>${BRL.format(r.precoSugerido)}</strong>.`;
     }
 
     function precificacaoInitOnce(){
@@ -932,7 +1020,7 @@
     }
 
     function pcWireEvents(){
-      const ids = ['pc-sel-categoria', 'pc-inp-custo', 'pc-inp-conc-media', 'pc-inp-nome'];
+      const ids = ['pc-sel-categoria', 'pc-inp-custo', 'pc-inp-conc-media', 'pc-inp-conc-min', 'pc-inp-conc-max', 'pc-sel-estrategia', 'pc-inp-intensidade', 'pc-inp-nome'];
       ids.forEach(id => {
         const el = document.getElementById(id);
         if(!el) return;
@@ -940,23 +1028,24 @@
       });
 
       document.getElementById('pc-btn-reset').addEventListener('click', () => {
-        ['pc-inp-nome', 'pc-inp-custo', 'pc-inp-conc-media'].forEach(id => document.getElementById(id).value='');
+        ['pc-inp-nome', 'pc-inp-custo', 'pc-inp-conc-media', 'pc-inp-conc-min', 'pc-inp-conc-max'].forEach(id => document.getElementById(id).value='');
+        document.getElementById('pc-sel-estrategia').value='abaixo';
+        document.getElementById('pc-inp-intensidade').value=5;
         pcUpdate();
       });
       
       document.getElementById('pc-btn-copiar').addEventListener('click', () => {
           const nomeProduto = document.getElementById('pc-inp-nome').value.trim();
-          const precoSugerido = document.getElementById('pc-kpi-preco').textContent;
-          const categoria = document.getElementById('pc-sel-categoria').value;
-          
+          const precoSugeridoNum = pcCalc().precoSugerido;
+          const precoSugeridoFormatado = BRL.format(precoSugeridoNum || 0);
+
           if(!nomeProduto) {
               return alert("Por favor, preencha o nome do produto na calculadora.");
           }
           
-          const tituloFinal = `${nomeProduto} - ${precoSugerido}`;
-          
-          document.getElementById('ad-titulo').value = tituloFinal;
-          document.getElementById('ad-categoria').value = categoria;
+          document.getElementById('ad-titulo').value = `${nomeProduto} - ${precoSugeridoFormatado}`;
+          document.getElementById('ad-categoria').value = document.getElementById('pc-sel-categoria').value;
+          document.getElementById('ad-valor').value = (precoSugeridoNum || 0).toFixed(2).replace('.', ',');
           document.getElementById('ad-titulo').focus();
       });
     }
