@@ -789,46 +789,94 @@
     const adStatus = document.getElementById('ad-status');
 
     function populateContaSelects() {
-      const selects = [document.getElementById('ad-conta'), document.getElementById('filtro-conta')];
-      for (const sel of selects) { if (!sel) continue; if (sel.id==='filtro-conta') sel.innerHTML='<option value="">Todas as contas</option>'; else sel.innerHTML=''; }
-      for (const a of state.accounts) {
-        const label = (a.nome && String(a.nome).trim()) ? String(a.nome).trim() : `Conta ${a.id.slice(0,4)}`;
-        const opt1 = document.createElement('option'); opt1.value=a.id; opt1.textContent=label + (a.status==='inativo'?' (inativa)':''); document.getElementById('ad-conta').appendChild(opt1);
-        const opt2 = document.createElement('option'); opt2.value=a.id; opt2.textContent=label; document.getElementById('filtro-conta').appendChild(opt2);
-      }
+        const adContaSelect = document.getElementById('ad-conta');
+        const filtroContaSelect = document.getElementById('filtro-conta');
+
+        adContaSelect.innerHTML = '';
+        filtroContaSelect.innerHTML = '<option value="">Todas as contas</option>';
+
+        for (const account of state.accounts) {
+            const label = account.nome || `Conta ${account.id.slice(0,4)}`;
+            
+            // O dropdown de filtro continua a mostrar todas as contas para pesquisa
+            const optFiltro = document.createElement('option');
+            optFiltro.value = account.id;
+            optFiltro.textContent = label;
+            filtroContaSelect.appendChild(optFiltro);
+
+            // O dropdown do formulário de anúncio mostra APENAS contas ativas
+            if (account.status === 'ativo') {
+                const optAd = document.createElement('option');
+                optAd.value = account.id;
+                optAd.textContent = label;
+                adContaSelect.appendChild(optAd);
+            }
+        }
     }
     
-    document.getElementById('btn-add-ad').addEventListener('click', async () => {
-      const titulo = adTitulo.value.trim();
-      const categoria = adCategoria.value.trim();
-      const valor = toNumberBRL(adValor.value);
-      const contaId = adConta.value;
-      const operador = state.currentUserProfile ? state.currentUserProfile.nomeFantasia : 'Desconhecido';
-      const data = new Date().toISOString();
-      const status = adStatus.value;
-      if (!titulo || !categoria || !contaId || valor <= 0) {
-          return alert('Preencha título, categoria, conta e um valor válido.');
-      }
-      const conta = state.accounts.find(a=>a.id===contaId); if (!conta) return alert('Conta inválida');
+    document.getElementById('btn-add-ad').addEventListener('click', async (event) => {
+        const button = event.target;
+        button.disabled = true;
+        button.textContent = 'Aguarde...';
 
-      const usadosHoje = contagensHojePorConta(contaId);
-      const ehIphone = isIphoneCategoria(categoria);
-      const limGeral = conta.limite || 0;
-      const limIph = conta.limiteIphone || 0;
-      const limOut = conta.limiteOutros || 0;
-      let mensagens = [];
-      if (limGeral>0 && usadosHoje.geral+1>limGeral) mensagens.push(`Geral (${usadosHoje.geral}/${limGeral})`);
-      if (ehIphone) { if (limIph>0 && usadosHoje.iph+1>limIph) mensagens.push(`iPhones (${usadosHoje.iph}/${limIph})`); }
-      else { if (limOut>0 && usadosHoje.out+1>limOut) mensagens.push(`Outros (${usadosHoje.out}/${limOut})`); }
-      if (mensagens.length>0) { if (!confirm(`Limite atingido para: ${mensagens.join(' e ')}. Deseja registrar mesmo assim?`)) return; }
+        try {
+            const titulo = adTitulo.value.trim();
+            const categoria = adCategoria.value.trim();
+            const valor = toNumberBRL(adValor.value);
+            const contaId = adConta.value;
+            const operador = state.currentUserProfile ? state.currentUserProfile.nomeFantasia : 'Desconhecido';
+            const data = new Date().toISOString();
+            const status = adStatus.value;
 
-      const novo = { titulo, categoria, valor, contaId, operador, data, status };
-      const docRef = await firebaseStore.addAd(novo);
-      novo.id = docRef.id;
+            if (!titulo || !categoria || !contaId || valor <= 0) {
+                alert('Preencha título, categoria, conta e um valor válido.');
+                return;
+            }
+            
+            const conta = state.accounts.find(a=>a.id===contaId);
+            if (!conta) {
+                alert('Conta selecionada é inválida.');
+                return;
+            }
 
-      state.ads.unshift(novo);
-      adTitulo.value=''; adCategoria.value=''; adValor.value=''; adStatus.value='publicado';
-      renderAds(); renderDashboard(); renderContas();
+            if (conta.status === 'inativo') {
+                alert(`A conta "${conta.nome}" está inativa e não pode publicar novos anúncios.`);
+                return;
+            }
+
+            const usadosHoje = contagensHojePorConta(contaId);
+            const ehIphone = isIphoneCategoria(categoria);
+            const limGeral = conta.limite || 0;
+            const limIph = conta.limiteIphone || 0;
+            const limOut = conta.limiteOutros || 0;
+            let mensagens = [];
+            if (limGeral > 0 && usadosHoje.geral + 1 > limGeral) mensagens.push(`Geral (${usadosHoje.geral}/${limGeral})`);
+            if (ehIphone) {
+                if (limIph > 0 && usadosHoje.iph + 1 > limIph) mensagens.push(`iPhones (${usadosHoje.iph}/${limIph})`);
+            } else {
+                if (limOut > 0 && usadosHoje.out + 1 > limOut) mensagens.push(`Outros (${usadosHoje.out}/${limOut})`);
+            }
+
+            if (mensagens.length > 0) {
+                if (!confirm(`Limite atingido para: ${mensagens.join(' e ')}. Deseja registrar mesmo assim?`)) {
+                    return;
+                }
+            }
+
+            const novo = { titulo, categoria, valor, contaId, operador, data, status };
+            const docRef = await firebaseStore.addAd(novo);
+            novo.id = docRef.id;
+
+            state.ads.unshift(novo);
+            adTitulo.value=''; adCategoria.value=''; adValor.value=''; adStatus.value='publicado';
+            renderAds(); renderDashboard(); renderContas();
+        } catch (error) {
+            console.error("Erro ao registrar anúncio:", error);
+            alert("Ocorreu um erro ao guardar o anúncio. Verifique a consola (F12) para mais detalhes.");
+        } finally {
+            button.disabled = false;
+            button.textContent = 'Registrar Anúncio';
+        }
     });
 
     const filtroTexto = document.getElementById('filtro-texto');
