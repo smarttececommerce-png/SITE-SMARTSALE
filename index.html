@@ -798,13 +798,11 @@
         for (const account of state.accounts) {
             const label = account.nome || `Conta ${account.id.slice(0,4)}`;
             
-            // O dropdown de filtro continua a mostrar todas as contas para pesquisa
             const optFiltro = document.createElement('option');
             optFiltro.value = account.id;
             optFiltro.textContent = label;
             filtroContaSelect.appendChild(optFiltro);
 
-            // O dropdown do formulário de anúncio mostra APENAS contas ativas
             if (account.status === 'ativo') {
                 const optAd = document.createElement('option');
                 optAd.value = account.id;
@@ -910,7 +908,7 @@
           <td>${ad.titulo}</td>
           <td>${ad.categoria}</td>
           <td>${ad.valor ? BRL.format(ad.valor) : '–'}</td>
-          <td>${contasById[ad.contaId]?.nome || '-'}</td>
+          <td>${contasById[ad.contaId] || '-'}</td>
           <td>${ad.operador || '-'}</td>
           <td>${fmt.datetime(ad.data)}</td>
           <td><span class="status-chip status-${ad.status}">${ad.status}</span></td>
@@ -1116,7 +1114,7 @@
       const opTbody = document.getElementById('op-tbody'); opTbody.innerHTML=''; Object.entries(byOp).sort((a,b)=>b[1].total-a[1].total).forEach(([op,info])=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${op}</td><td>${info.total}</td><td>${info.last?new Date(info.last).toLocaleString('pt-BR'):'-'}</td>`; opTbody.appendChild(tr); });
       const distTbody = document.getElementById('dist-tbody'); distTbody.innerHTML=''; const totalDias = Math.max(1, Math.round((fmt.startOfDay(end)-fmt.startOfDay(start))/86400000)+1);
       Object.entries(byConta).forEach(([id,total])=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${contasById[id]||id}</td><td>${total}</td><td>${(total/totalDias).toFixed(2)}</td>`; distTbody.appendChild(tr); });
-      const relTbody = document.getElementById('rel-tbody'); relTbody.innerHTML=''; rows.sort((a,b)=>new Date(b.data)-new Date(a.data)).forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${fmt.datetime(r.data)}</td><td>${r.titulo}</td><td>${r.categoria}</td><td>${r.valor ? BRL.format(r.valor) : '–'}</td><td>${contasById[r.contaId]||r.contaId}</td><td>${r.operador||'—'}</td><td>${r.status}</td>`; relTbody.appendChild(tr); });
+      const relTbody = document.getElementById('rel-tbody'); relTbody.innerHTML=''; rows.sort((a,b)=>new Date(b.data)-new Date(a.data)).forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${fmt.datetime(r.data)}</td><td>${r.titulo}</td><td>${r.categoria}</td><td>${r.valor ? BRL.format(r.valor) : '–'}</td><td>${contasById[r.contaId] || '-'}</td><td>${r.operador||'—'}</td><td>${r.status}</td>`; relTbody.appendChild(tr); });
     }
 
     document.getElementById('btn-export-csv').addEventListener('click', ()=>{
