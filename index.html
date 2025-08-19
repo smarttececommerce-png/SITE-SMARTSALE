@@ -81,6 +81,7 @@
     input:focus, select:focus, textarea:focus { border-color: #334155; box-shadow: 0 0 0 3px #38bdf81a; }
     input:read-only { background-color: #0f172a; cursor: not-allowed; }
     button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; background: var(--muted); opacity: 0.6; }
     .btn-primary { background: linear-gradient(90deg, #22c55e, #16a34a); border: none; }
     .btn-secondary { background: #0b1220; border-color: #334155; }
     .btn-danger { background: #7f1d1d; border-color: #7f1d1d; }
@@ -466,7 +467,6 @@
   </div>
 
   <script>
-    // Configuração do Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyCqJ3D_bv-8UmnwGAk2n8qKb_EMLofUfys",
       authDomain: "olx---ads-ops-dashboard.firebaseapp.com",
@@ -1243,7 +1243,6 @@
       });
     }
 
-    // A função initCalendar ESTÁ AQUI AGORA
     function initCalendar() { 
         const wd = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; 
         document.getElementById('cal-weekdays').innerHTML = wd.map(d=>`<div>${d}</div>`).join(''); 
@@ -1264,7 +1263,7 @@
         renderDashboard();
         renderContas();
         renderAds();
-        initCalendar(); // A chamada está aqui
+        initCalendar();
       } catch (err) {
         console.error("Falha ao carregar os dados do Firebase:", err);
         alert("Não foi possível conectar ao banco de dados. Verifique a sua conexão com a internet e a configuração do Firebase.");
