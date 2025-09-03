@@ -1,0 +1,127 @@
+/* style.css */
+body {
+    font-family: 'Inter', sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* --- Telas e Layouts --- */
+.app-screen {
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* --- Componentes Comuns --- */
+.logout-btn {
+    background-color: #ef4444;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+.logout-btn:hover {
+    background-color: #dc2626;
+}
+
+/* --- Tela do HUB --- */
+.hub-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: white;
+    border-bottom: 1px solid #e5e7eb;
+}
+.dark .hub-header {
+    background-color: #1f2937;
+    border-bottom-color: #374151;
+}
+
+.hub-content {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.hub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.hub-card {
+    background-color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hub-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+.dark .hub-card {
+    background-color: #1f2937;
+    border: 1px solid #374151;
+}
+
+/* --- Tela do SmartSale (Módulo) --- */
+.smartsale-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: white;
+    border-bottom: 1px solid #e5e7eb;
+}
+.dark .smartsale-header {
+     background-color: #1f2937;
+    border-bottom-color: #374151;
+}
+.back-to-hub {
+    background: #f3f4f6;
+    color: #1f2937;
+    border: 1px solid #d1d5db;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.dark .back-to-hub {
+    background: #374151;
+    color: #d1d5db;
+    border-color: #4b5563;
+}
+#smartsale-content {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.card-ss {
+    background-color: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+.dark .card-ss {
+    background-color: #1f2937;
+    border: 1px solid #374151;
+}
+.ss-task {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f9fafb;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+.dark .ss-task {
+    background: #374151;
+    border-color: #4b5563;
+}
+
