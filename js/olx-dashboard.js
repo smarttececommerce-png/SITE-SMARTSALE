@@ -1,7 +1,7 @@
 // js/olx-dashboard.js
 
 // Usando a configuração centralizada do seu projeto
-import { firebaseConfig } from './config.js';
+import { firebaseConfig } from './config.js'; 
 
 // --- INICIALIZAÇÃO DO FIREBASE (Sintaxe v9 modular) ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -27,14 +27,14 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         const userProfileDoc = await getDoc(doc(db, "users", user.uid));
         state.currentUser = user;
-        state.currentUserProfile = userProfileDoc.exists()
-            ? userProfileDoc.data()
+        state.currentUserProfile = userProfileDoc.exists() 
+            ? userProfileDoc.data() 
             : { email: user.email, nomeFantasia: user.email.split('@')[0] };
-
+        
         document.getElementById('user-name-display').textContent = `Olá, ${state.currentUserProfile.nomeFantasia}`;
         document.getElementById('ad-operador').value = state.currentUserProfile.nomeFantasia;
         document.getElementById('user-info').classList.remove('hidden');
-
+        
         await initializeDashboard();
     } else {
         alert("Sessão não encontrada. Redirecionando para o login.");
@@ -45,28 +45,27 @@ onAuthStateChanged(auth, async (user) => {
 async function initializeDashboard() {
     console.log("Carregando dados da OLX...");
     try {
-        const accountsPromise = getDocs(collection(db, 'olx-accounts'));
-        const adsPromise = getDocs(query(collection(db, 'olx-ads'), orderBy('data', 'desc')));
-        const settingsPromise = getDoc(doc(db, 'olx-settings', 'global'));
+        const accountsPromise = getDocs(collection(db, 'accounts'));
+        const adsPromise = getDocs(query(collection(db, 'ads'), orderBy('data', 'desc')));
+        const settingsPromise = getDoc(doc(db, 'settings', 'global'));
 
-        // CORREÇÃO: Trocado 'adsSnap' por 'adsPromise' dentro do Promise.all
+        // CORREÇÃO APLICADA AQUI
         const [accountsSnap, adsSnap, settingsDoc] = await Promise.all([accountsPromise, adsPromise, settingsPromise]);
-
+        
         state.accounts = accountsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         state.ads = adsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        state.settings = settingsDoc.exists()
-            ? settingsDoc.data()
+        state.settings = settingsDoc.exists() 
+            ? settingsDoc.data() 
             : { metaIphone: 15, metaOutros: 30, padraoLimiteIphone: 5, padraoLimiteOutros: 100 };
-
+        
         console.log("Dados da OLX carregados:", state);
-
         setupEventListeners();
         populateInitialSelects();
         precificacaoInitOnce();
         renderDashboard();
     } catch (err) {
         console.error("Falha ao carregar dados da OLX:", err);
-        alert("Não foi possível conectar ao banco de dados da OLX. Verifique o nome das coleções no Firestore.");
+        alert("Não foi possível conectar ao banco de dados da OLX.");
     }
 }
 
@@ -83,7 +82,7 @@ const isIphoneCategoria = (cat) => cat && cat.toLowerCase().includes('iphone');
 function getCountsByAccountForToday(accountId) {
     const hojeStart = new Date();
     hojeStart.setHours(0, 0, 0, 0);
-
+    
     let geral = 0, iph = 0, out = 0;
     for (const ad of state.ads) {
         if (new Date(ad.data) >= hojeStart && ad.contaId === accountId) {
@@ -105,12 +104,6 @@ function setupEventListeners() {
             btn.classList.add('active');
             document.querySelectorAll('.tab').forEach(s => s.classList.add('hidden'));
             document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
-
-            switch (btn.dataset.tab) {
-                case 'dashboard': renderDashboard(); break;
-                case 'contas': renderContas(); break;
-                case 'anuncios': renderAds(); break;
-            }
         });
     });
 
@@ -167,7 +160,7 @@ async function handleAddOrUpdateAccount() {
     };
     
     try {
-        const docRef = await addDoc(collection(db, "olx-accounts"), accountData);
+        const docRef = await addDoc(collection(db, "accounts"), accountData);
         state.accounts.push({ id: docRef.id, ...accountData });
         renderContas();
         populateInitialSelects();
@@ -187,14 +180,14 @@ async function handleAccountAction(e) {
 
     if (act === 'del') {
         if (confirm(`Excluir conta "${acc.nome}"?`)) {
-            await deleteDoc(doc(db, "olx-accounts", id));
+            await deleteDoc(doc(db, "accounts", id));
             state.accounts = state.accounts.filter(a => a.id !== id);
             renderContas();
         }
     } else if (act === 'edit') {
         const newName = prompt("Novo nome da conta:", acc.nome);
         if (newName && newName.trim() !== '') {
-            await updateDoc(doc(db, "olx-accounts", id), { nome: newName.trim() });
+            await updateDoc(doc(db, "accounts", id), { nome: newName.trim() });
             acc.nome = newName.trim();
             renderContas();
         }
@@ -218,7 +211,7 @@ async function handleAddAd() {
     }
     
     try {
-        const docRef = await addDoc(collection(db, "olx-ads"), adData);
+        const docRef = await addDoc(collection(db, "ads"), adData);
         state.ads.unshift({ id: docRef.id, ...adData });
         renderAds();
         renderDashboard();
@@ -240,13 +233,13 @@ async function handleAdAction(e) {
     const action = element.dataset.act;
     if (action === 'del') {
         if (confirm(`Excluir anúncio "${ad.titulo}"?`)) {
-            await deleteDoc(doc(db, "olx-ads", id));
+            await deleteDoc(doc(db, "ads", id));
             state.ads = state.ads.filter(a => a.id !== id);
             renderAds();
         }
     } else if (element.tagName === 'SELECT') {
         ad.status = element.value;
-        await updateDoc(doc(db, "olx-ads", id), { status: ad.status });
+        await updateDoc(doc(db, "ads", id), { status: ad.status });
         renderAds();
     }
 }
