@@ -201,16 +201,16 @@ async function handleAddOrUpdateAccount() {
         limiteOutros: parseInt(document.getElementById('acc-limite-outros').value) || state.settings.padraoLimiteOutros,
         criadoEm: new Date().toISOString()
     };
-    
+
     try {
         // Adiciona a nova conta à coleção 'olx-accounts'
         const docRef = await addDoc(collection(db, "olx-accounts"), accountData);
         // Atualiza o estado local para a interface refletir a mudança imediatamente
         state.accounts.push({ id: docRef.id, ...accountData });
-        
+
         renderContas(); // Redesenha a tabela de contas
         populateInitialSelects(); // Atualiza os menus <select>
-        
+
         // Limpa os campos do formulário
         ['acc-nome', 'acc-limite', 'acc-limite-iphone', 'acc-limite-outros'].forEach(id => document.getElementById(id).value = '');
     } catch (error) {
@@ -262,15 +262,15 @@ async function handleAddAd() {
     if (!adData.titulo || !adData.contaId || adData.valor <= 0) {
         return alert('Preencha Título, Conta e um Valor válido para registrar o anúncio.');
     }
-    
+
     try {
         const docRef = await addDoc(collection(db, "olx-ads"), adData);
         // Adiciona o novo anúncio no início do array para aparecer primeiro na lista
         state.ads.unshift({ id: docRef.id, ...adData });
-        
+
         renderAds(); // Atualiza a tabela de anúncios
         renderDashboard(); // Atualiza os KPIs do dashboard
-        
+
         // Limpa os campos do formulário de anúncio
         ['ad-titulo', 'ad-categoria', 'ad-valor'].forEach(id => document.getElementById(id).value = '');
     } catch (error) {
@@ -302,3 +302,261 @@ async function handleAdAction(e) {
         renderAds(); // Redesenha a tabela para mostrar o novo status
     }
 }
+// --- FUNÇÕES DE RENDERIZAÇÃO DA INTERFACE ---
+
+// Variáveis globais para os gráficos, para que possam ser destruídos e recriados
+let chartContaToday, chartTrend;
+
+// Renderiza a aba principal do Dashboard com KPIs e gráficos
+function renderDashboard() {
+    const hojeStart = new Date();
+    hojeStart.setHours(0, 0, 0, 0);
+    const adsHoje = state.ads.filter(a => new Date(a.data) >= hojeStart);
+
+    // KPIs principais
+    document.getElementById('kpi-total-hoje').textContent = adsHoje.length;
+    document.getElementById('kpi-contas-ativas').textContent = state.accounts.filter(a => a.status === 'ativo').length;
+
+    // Metas
+    const iphHoje = adsHoje.filter(a => isIphoneCategoria(a.categoria)).length;
+    const metaI = state.settings.metaIphone || 1; // Evita divisão por zero
+    const pctI = Math.min(100, (iphHoje / metaI) * 100);
+    document.getElementById('prog-iphone').style.width = pctI + '%';
+    document.getElementById('meta-iphone-txt').textContent = `${iphHoje}/${metaI}`;
+
+    // ... (Lógica similar pode ser adicionada para a meta "Outros")
+
+    // Gráfico de distribuição por conta
+    const countsHoje = getCountsByAccountForToday(null); // Pega a contagem geral
+    const ctx1 = document.getElementById('chartPorConta').getContext('2d');
+    if (chartContaToday) chartContaToday.destroy();
+    chartContaToday = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+            labels: state.accounts.map(a => a.nome),
+            datasets: [{
+                label: 'Anúncios Hoje',
+                data: state.accounts.map(a => getCountsByAccountForToday(a.id).geral),
+                backgroundColor: '#38bdf8'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    // Gráfico de tendência dos últimos 30 dias
+    const days = Array.from({ length: 30 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        return d;
+    }).reverse();
+
+    const byDay = days.map(d => {
+        const start = new Date(d);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(d);
+        end.setHours(23, 59, 59, 999);
+        return state.ads.filter(a => {
+            const adDate = new Date(a.data);
+            return adDate >= start && adDate <= end;
+        }).length;
+    });
+
+    const ctx2 = document.getElementById('chartTendencia').getContext('2d');
+    if (chartTrend) chartTrend.destroy();
+    chartTrend = new Chart(ctx2, {
+        type: 'line',
+        data: {
+            labels: days.map(d => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })),
+            datasets: [{
+                label: 'Anúncios',
+                data: byDay,
+                borderColor: '#22c55e',
+                backgroundColor: '#22c55e22',
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    renderCalendar();
+}
+
+// Renderiza a tabela da aba de Contas
+function renderContas() {
+    const tbody = document.getElementById('contas-tbody');
+    const searchTerm = document.getElementById('conta-search').value.toLowerCase();
+    tbody.innerHTML = '';
+
+    state.accounts.filter(acc => acc.nome.toLowerCase().includes(searchTerm)).forEach(acc => {
+        const counts = getCountsByAccountForToday(acc.id);
+        const tr = document.createElement('tr');
+        tr.dataset.id = acc.id; // Adiciona ID na linha
+        tr.innerHTML = `
+            <td>${acc.nome}</td>
+            <td><span class="pill ${acc.status === 'ativo' ? 'success' : 'warn'}">${acc.status}</span></td>
+            <td>${acc.limite || '-'}</td>
+            <td>${acc.limiteIphone || '-'}</td>
+            <td>${acc.limiteOutros || '-'}</td>
+            <td>${counts.geral} / ${counts.iph} / ${counts.out}</td>
+            <td>-</td>
+            <td>
+                <button data-act="edit" data-id="${acc.id}" class="btn-secondary">Editar</button>
+                <button data-act="del" data-id="${acc.id}" class="btn-danger">Excluir</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Renderiza a tabela da aba de Anúncios
+function renderAds() {
+    const tbody = document.getElementById('ads-tbody');
+    const contasById = Object.fromEntries(state.accounts.map(a => [a.id, a.nome]));
+    tbody.innerHTML = '';
+
+    // Lógica de filtro (simplificada, pode ser expandida)
+    const filteredAds = state.ads.filter(ad => {
+        // ... (adicionar lógica completa de filtros aqui)
+        return true;
+    });
+
+    filteredAds.slice(0, 50).forEach(ad => { // Mostra apenas os 50 mais recentes para performance
+        const tr = document.createElement('tr');
+        tr.dataset.id = ad.id; // Adiciona ID na linha
+        tr.innerHTML = `
+            <td>${ad.titulo}</td>
+            <td>${ad.categoria}</td>
+            <td>${BRL.format(ad.valor)}</td>
+            <td>${contasById[ad.contaId] || 'N/A'}</td>
+            <td>${ad.operador}</td>
+            <td>${new Date(ad.data).toLocaleString('pt-BR')}</td>
+            <td><span class="status-chip status-${ad.status}">${ad.status}</span></td>
+            <td>
+                <select data-act="chgstatus" data-id="${ad.id}">
+                    <option value="publicado" ${ad.status === 'publicado' ? 'selected' : ''}>Publicado</option>
+                    <option value="pendente" ${ad.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                    <option value="rejeitado" ${ad.status === 'rejeitado' ? 'selected' : ''}>Rejeitado</option>
+                </select>
+                <button data-act="del" data-id="${ad.id}" class="btn-danger">Excluir</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// --- LÓGICA DO CALENDÁRIO ---
+
+function renderCalendar() {
+    if (state.view.calYear === null) {
+        const now = new Date();
+        state.view.calYear = now.getFullYear();
+        state.view.calMonth = now.getMonth();
+        const wd = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        document.getElementById('cal-weekdays').innerHTML = wd.map(d => `<div>${d}</div>`).join('');
+    }
+
+    const y = state.view.calYear, m = state.view.calMonth;
+    const first = new Date(y, m, 1);
+    const last = new Date(y, m + 1, 0);
+    document.getElementById('cal-title').textContent = first.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+    const grid = document.getElementById('calendar');
+    grid.innerHTML = '';
+
+    // Preenche os dias vazios no início do mês
+    for (let i = 0; i < first.getDay(); i++) {
+        grid.appendChild(document.createElement('div'));
+    }
+
+    // Preenche os dias do mês
+    for (let d = 1; d <= last.getDate(); d++) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell';
+        const date = new Date(y, m, d);
+
+        const start = new Date(date); start.setHours(0, 0, 0, 0);
+        const end = new Date(date); end.setHours(23, 59, 59, 999);
+
+        const count = state.ads.filter(a => {
+            const adDate = new Date(a.data);
+            return adDate >= start && adDate <= end;
+        }).length;
+
+        cell.innerHTML = `<div class="cal-day">${d}</div><div class="cal-count">${count}</div>`;
+
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        if (date.getTime() === today.getTime()) cell.classList.add('cal-today');
+
+        grid.appendChild(cell);
+    }
+}
+
+function shiftMonth(delta) {
+    let m = state.view.calMonth + delta;
+    let y = state.view.calYear;
+    if (m < 0) { m = 11; y--; }
+    if (m > 11) { m = 0; y++; }
+    state.view.calMonth = m;
+    state.view.calYear = y;
+    renderCalendar();
+}
+
+// --- LÓGICA DA CALCULADORA DE PRECIFICAÇÃO ---
+function precificacaoInitOnce() {
+    const ids = ['pc-sel-categoria', 'pc-inp-custo', 'pc-inp-conc-media', 'pc-sel-estrategia', 'pc-inp-intensidade'];
+    ids.forEach(id => document.getElementById(id)?.addEventListener('input', pcUpdate));
+
+    document.getElementById('pc-btn-reset')?.addEventListener('click', () => {
+        ['pc-inp-nome', 'pc-inp-custo', 'pc-inp-conc-media', 'pc-inp-conc-min', 'pc-inp-conc-max'].forEach(id => document.getElementById(id).value = '');
+        pcUpdate();
+    });
+
+    document.getElementById('pc-btn-copiar')?.addEventListener('click', () => {
+        const nome = document.getElementById('pc-inp-nome').value;
+        const preco = pcCalc().precoSugerido;
+        if (!nome || !preco) return alert("Preencha o nome e o custo na calculadora primeiro.");
+
+        document.getElementById('ad-titulo').value = `${nome} - ${BRL.format(preco)}`;
+        document.getElementById('ad-valor').value = preco.toFixed(2).replace('.', ',');
+    });
+
+    // Popula categorias da calculadora (exemplo)
+    const catSelect = document.getElementById('pc-sel-categoria');
+    ['iPhone', 'Samsung', 'Xiaomi', 'Outros'].forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = cat;
+        catSelect.appendChild(opt);
+    });
+
+    pcUpdate(); // Calcula na inicialização
+}
+
+function pcCalc() {
+    const custo = toNumberBRL(document.getElementById('pc-inp-custo').value);
+    const concMed = toNumberBRL(document.getElementById('pc-inp-conc-media').value);
+    const estrategia = document.getElementById('pc-sel-estrategia').value;
+    const intensidade = parseInt(document.getElementById('pc-inp-intensidade').value || '5', 10) / 100;
+
+    // Lógica de cálculo simplificada
+    const margemMin = 0.20; // 20%
+    const precoMinSaudavel = custo * (1 + margemMin);
+
+    let precoSugerido = precoMinSaudavel;
+    if (concMed > 0) {
+        let alvo = concMed;
+        if (estrategia === 'abaixo') alvo *= (1 - intensidade);
+        if (estrategia === 'acima') alvo *= (1 + intensidade);
+        precoSugerido = Math.max(precoMinSaudavel, alvo);
+    }
+
+    return { precoSugerido, precoMinSaudavel };
+}
+
+function pcUpdate() {
+    const { precoSugerido, precoMinSaudavel } = pcCalc();
+    document.getElementById('pc-kpi-preco').textContent = BRL.format(precoSugerido);
+    document.getElementById('pc-min-saudavel').textContent = BRL.format(precoMinSaudavel);
+    // ... (atualizar outros campos da calculadora)
+}
+
