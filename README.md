@@ -1,17 +1,8 @@
 <div align="center">
-<img src="https://www.google.com/search?q=https://placehold.co/150x150/7c3aed/ffffff%3Ftext%3DSS" alt="Logo do Smart Sale" style="border-radius: 50%;">
 <h1 align="center">🚀 Smart Sale - Hub de Gestão</h1>
 <p align="center">
 Uma plataforma completa para gestão de vendas, produtividade e equipas, tudo num só lugar.
 </p>
-</div>
-
-<div align="center">
-<!-- Badges -->
-<img src="https://www.google.com/search?q=https://img.shields.io/badge/license-MIT-blue.svg" alt="Licença MIT">
-<img src="https://www.google.com/search?q=https://img.shields.io/badge/Frontend-HTML%252BCSS%252BJS-orange" alt="Frontend">
-<img src="https://www.google.com/search?q=https://img.shields.io/badge/Backend-Firebase-yellow" alt="Backend">
-<img src="https://www.google.com/search?q=https://img.shields.io/badge/Estilo-TailwindCSS-blueviolet" alt="Tailwind CSS">
 </div>
 
 <br>
@@ -31,15 +22,6 @@ Sobre o Projeto
 
 🌟 Sobre o Projeto
 O Smart Sale é uma aplicação web robusta, concebida como um hub central de ferramentas para equipas de vendas e marketing. A plataforma unifica múltiplos painéis para monitorizar e gerir diversos aspetos do negócio, desde a produtividade da equipa e gestão de tarefas até à performance em plataformas de e-commerce e ao controlo de ponto dos funcionários.
-
-<br>
-
-📸 Demonstração
-<!-- IMPORTANTE: Substitua a imagem abaixo por um screenshot ou GIF da sua aplicação -->
-
-<div align="center">
-<img src="https://www.google.com/search?q=https://placehold.co/800x450/1e293b/ffffff%3Ftext%3DScreenshot%2Bda%2BAplica%C3%A7%C3%A3o" alt="Screenshot da Aplicação Smart Sale">
-</div>
 
 <br>
 
