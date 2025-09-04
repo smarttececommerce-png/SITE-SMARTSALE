@@ -1,37 +1,54 @@
-// js/admin/usuarios.js (Módulo de Administração de Usuários)
+// js/admin/usuarios.js (Módulo de Administração de Usuários - CORRIGIDO)
 
 import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 let db;
-let getAllUsers;
-let currentUser; // Para armazenar os dados do admin logado
+let getGlobalData;
+let currentUser; // Armazena os dados do admin logado
 const auth = getAuth();
 
-// Função de inicialização chamada pelo admin.js
-export function initUsuariosAdmin(firestore, usersFunc, adminUser) {
-    db = firestore;
-    getAllUsers = usersFunc;
-    currentUser = adminUser; // Recebe os dados do admin
+/**
+ * Inicializa o módulo de administração de Usuários.
+ * @param {object} firestoreInstance - A instância do Firestore.
+ * @param {function} globalDataGetter - Função para obter dados globais.
+ */
+export function initUsuariosAdmin(firestoreInstance, globalDataGetter) {
+    db = firestoreInstance;
+    getGlobalData = globalDataGetter;
     
+    // Pega o usuário admin atualmente logado da lista de usuários
+    const { users } = getGlobalData();
+    currentUser = users.find(u => u.id === auth.currentUser.uid);
+
     console.log("Módulo de Admin de Usuários inicializado.");
     
     setupUsuariosEventListeners();
     updateUserListUI();
 
-    // Ouve o evento personalizado para atualizar a lista quando os dados mudam
-    window.addEventListener('usersUpdated', updateUserListUI);
+    // Ouve o evento para atualizar a lista quando os dados mudam
+    window.addEventListener('dataUpdated', (e) => {
+        if (e.detail.dataType === 'users') {
+            updateUserListUI();
+        }
+    });
 }
 
 function setupUsuariosEventListeners() {
     document.getElementById('createUserForm')?.addEventListener('submit', handleCreateUser);
     
-    // Listener para os botões de editar na lista
+    // Listener para os botões de editar/remover na lista de usuários
     document.getElementById('userList')?.addEventListener('click', (e) => {
-        const button = e.target.closest('button[data-action="edit-user"]');
-        if (button) {
-            const user = getAllUsers().find(u => u.uid === button.dataset.userId);
-            if (user) openEditUserModal(user);
+        const button = e.target.closest('button[data-user-id]');
+        if (!button) return;
+
+        const userId = button.dataset.userId;
+        const action = button.dataset.action;
+        const { users } = getGlobalData();
+        const user = users.find(u => u.id === userId);
+
+        if (action === 'edit-user' && user) {
+            openEditUserModal(user);
         }
     });
 
@@ -44,27 +61,37 @@ function setupUsuariosEventListeners() {
 
 function updateUserListUI() {
     const userListEl = document.getElementById('userList');
-    if(!userListEl) return;
+    if (!userListEl) return;
     
-    userListEl.innerHTML = '';
+    const { users } = getGlobalData();
+    if (!users || !Array.isArray(users)) {
+        console.error("A lista de usuários não é um array válido.");
+        userListEl.innerHTML = '';
+        return;
+    }
     
-    // Filtra a lista para remover o admin atual
-    const usersToList = getAllUsers().filter(user => user.uid !== currentUser.uid);
+    // Filtra a lista para não exibir o administrador que está logado
+    const usersToList = users.filter(user => user.id !== auth.currentUser.uid);
 
-    usersToList.forEach(user => {
-        userListEl.innerHTML += `
-            <div class="user-item">
-                <div>
-                    <div class="font-semibold text-sm">${user.nomeFantasia} (${user.role || 'vendedor'})</div>
-                    <div class="text-xs text-gray-400">${user.email}</div>
-                    <div class="text-xs text-gray-400">Salário: R$ ${(user.salarioFixo || 0).toFixed(2)}</div>
-                </div>
-                <button data-action="edit-user" data-user-id="${user.uid}" class="btn btn-sm btn-secondary">
+    if (usersToList.length === 0) {
+        userListEl.innerHTML = '<p class="text-gray-400 italic">Nenhum outro usuário cadastrado.</p>';
+        return;
+    }
+
+    userListEl.innerHTML = usersToList.map(user => `
+        <div class="user-item">
+            <div>
+                <p class="font-semibold text-white">${user.nomeFantasia} <span class="text-xs text-gray-400">(${user.role || 'vendedor'})</span></p>
+                <p class="text-xs text-gray-400">${user.email}</p>
+                <p class="text-xs text-gray-400">Salário: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(user.salarioFixo || 0)}</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button data-action="edit-user" data-user-id="${user.id}" class="btn btn-sm btn-secondary">
                     <i class="fas fa-pencil-alt"></i>
                 </button>
             </div>
-        `;
-    });
+        </div>
+    `).join('');
 }
 
 async function handleCreateUser(e) {
@@ -92,7 +119,6 @@ async function handleCreateUser(e) {
 
         // 2. Cria o documento do usuário no Firestore
         await setDoc(doc(db, "users", user.uid), {
-            uid: user.uid,
             email: email,
             nomeFantasia: nome,
             nomeFantasia_lower: nome.toLowerCase(),
@@ -104,6 +130,8 @@ async function handleCreateUser(e) {
             horarioSaida2: saida2
         });
 
+        // **CORREÇÃO APLICADA AQUI**
+        // Removido o caractere '\' antes da crase
         alert(`Usuário ${nome} criado com sucesso!`);
         form.reset();
 
@@ -117,7 +145,7 @@ function openEditUserModal(user) {
     const modal = document.getElementById('editUserModal');
     if (!modal) return;
 
-    modal.querySelector('#editUserId').value = user.uid;
+    modal.querySelector('#editUserId').value = user.id;
     modal.querySelector('#editNome').value = user.nomeFantasia;
     modal.querySelector('#editRole').value = user.role || 'vendedor';
     modal.querySelector('#editSalario').value = user.salarioFixo || 0;
@@ -137,6 +165,7 @@ async function handleEditUser(e) {
     
     const updatedData = {
         nomeFantasia: form.querySelector('#editNome').value,
+        nomeFantasia_lower: form.querySelector('#editNome').value.toLowerCase(),
         role: form.querySelector('#editRole').value,
         salarioFixo: parseFloat(form.querySelector('#editSalario').value),
         horarioEntrada1: form.querySelector('#editEntrada1').value,
@@ -153,4 +182,4 @@ async function handleEditUser(e) {
         console.error("Erro ao editar usuário:", error);
         alert("Erro ao editar usuário: " + error.message);
     }
-} 
+}

@@ -1,4 +1,10 @@
 /* js/config.js */
+
+// Importa as funções necessárias do SDK do Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
 // Configuração do Firebase
 export const firebaseConfig = {
     apiKey: "AIzaSyCqJ3D_bv-8UmnwGAk2n8qKb_EMLofUfys",
@@ -8,6 +14,13 @@ export const firebaseConfig = {
     messagingSenderId: "149455998150",
     appId: "1:149455998150:web:3074fba78ddd3367f65bc7"
 };
+
+// Inicializa o Firebase com as configurações
+const app = initializeApp(firebaseConfig);
+
+// Inicializa os serviços do Firebase e os exporta para serem usados em outros arquivos
+export const db = getFirestore(app);
+export const auth = getAuth(app);
  
 // Frases motivacionais
 export const motivationalQuotes = [

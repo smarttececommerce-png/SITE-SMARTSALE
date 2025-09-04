@@ -2,9 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { firebaseConfig } from './config.js';
-import { initSmartSale } from './smartsale-module.js';
-import { motivationalQuotes } from "./config.js";
+import { firebaseConfig, motivationalQuotes } from './config.js';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -16,7 +14,6 @@ let currentUser = null;
 const screens = {
     login: document.getElementById('login-screen'),
     hub: document.getElementById('hub-screen'),
-    smartsale: document.getElementById('smartsale-screen'),
 };
 
 function showScreen(screenName) {
@@ -34,7 +31,6 @@ onAuthStateChanged(auth, async (user) => {
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
-            // CORREÇÃO: Garante que o UID do usuário autenticado esteja sempre presente no objeto currentUser.
             currentUser = { ...userDocSnap.data(), uid: user.uid };
             document.getElementById('hub-user-name').textContent = currentUser.nomeFantasia;
             showScreen('hub');
@@ -48,7 +44,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- Lógica de Navegação do Hub ---
+// --- Lógica de Navegação do Hub e UI ---
 document.addEventListener('DOMContentLoaded', () => {
     // Links para alternar entre Login e Registo
     const showSignupLink = document.getElementById('show-signup-link');
@@ -75,13 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Ações dos Cards do Hub
     document.getElementById('hub-goto-smartsale').addEventListener('click', () => {
-        if (currentUser) {
-            showScreen('smartsale');
-            // Passa a instância 'db' diretamente para o módulo
-            initSmartSale(db, currentUser, showScreen);
-        } else {
-            alert("Por favor, aguarde o carregamento dos dados do utilizador.");
-        }
+        // MODIFICADO: Redireciona para a nova página dedicada
+        window.location.href = 'rotina-e-metas.html';
     });
 
     document.getElementById('hub-goto-olx').addEventListener('click', () => {
@@ -91,20 +82,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('hub-goto-ponto').addEventListener('click', () => {
         window.location.href = 'ponto/dashboard.html';
     });
+
+    // Mostra a frase aleatória
+    showRandomQuote();
 });
  
-// frase aleatoria
+// Função para mostrar frase aleatória
 function showRandomQuote() {
-    const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
-    const { text, author } = motivationalQuotes[randomIndex];
+    if (motivationalQuotes && motivationalQuotes.length > 0) {
+        const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
+        const { text, author } = motivationalQuotes[randomIndex];
 
-    document.getElementById("quote-text").textContent = `"${text}"`;
-    document.getElementById("quote-author").textContent = `— ${author}`;
+        document.getElementById("quote-text").textContent = `"${text}"`;
+        document.getElementById("quote-author").textContent = `— ${author}`;
+    }
 }
-
-// Chama quando a página carrega
-document.addEventListener("DOMContentLoaded", showRandomQuote);
-
 
 // --- Funções de Login e Registo ---
 async function handleLogin() {
