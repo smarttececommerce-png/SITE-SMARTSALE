@@ -1,4 +1,4 @@
-🚀 SITE-SMARTSALE
+[🚀 SITE-SMARTSALE
 📝 Descrição Geral
 O SITE-SMARTSALE é uma aplicação web robusta, concebida como um hub central de ferramentas de gestão para equipas de vendas e marketing. A plataforma unifica múltiplos painéis para monitorizar e gerir diversos aspetos do negócio, desde a produtividade da equipa e gestão de tarefas até à performance em plataformas de e-commerce e ao controlo de ponto dos funcionários.
 
@@ -125,3 +125,4 @@ python -m http.server
 Abra o navegador e aceda ao endereço fornecido (geralmente http://localhost:8000).
 
 Desenvolvido por ZainLet
+](https://g.co/gemini/share/4c11ab0d30ab)
