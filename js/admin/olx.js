@@ -227,4 +227,4 @@ function generateReportHTML(records, startDate, endDate, reportTitle) {
                 </div>
             </div>
         </body></html>`;
-}
+} 

@@ -153,4 +153,4 @@ async function handleEditUser(e) {
         console.error("Erro ao editar usuário:", error);
         alert("Erro ao editar usuário: " + error.message);
     }
-}
+} 

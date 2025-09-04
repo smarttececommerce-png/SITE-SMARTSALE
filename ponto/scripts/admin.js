@@ -703,4 +703,4 @@ function calculateMinuteValue(salary, totalDailyMinutes) {
     const totalMonthlyMinutes = workDaysPerMonth * totalDailyMinutes;
     const minuteValue = salary / totalMonthlyMinutes;
     return minuteValue;
-}
+} 

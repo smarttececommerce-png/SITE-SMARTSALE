@@ -143,4 +143,4 @@ function updateWorkingNowPanel() {
                 </div>`;
         });
     }
-}
+} 

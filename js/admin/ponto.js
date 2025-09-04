@@ -315,4 +315,4 @@ async function showRecordDetails(date) {
 async function generatePontoReport() {
     // Implementação da geração de relatórios
     alert("Gerando relatório...");
-}
+} 

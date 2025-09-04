@@ -29,7 +29,7 @@ Uma área restrita para administradores, que oferece controlo total sobre todos 
 Monitorização em tempo real dos funcionários que estão a trabalhar.
 
 Resumo das tarefas do "Smart Sale" (pendentes e concluídas no dia).
-
+ 
 ⏰ Gestão de Ponto Eletrónico:
 
 Aprovação de justificativas de ausência pendentes.

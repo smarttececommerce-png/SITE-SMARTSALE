@@ -237,4 +237,4 @@ async function handleTaskStatusChange(event) {
         alert("Não foi possível atualizar a tarefa.");
         checkbox.checked = !checkbox.checked;
     }
-}
+} 

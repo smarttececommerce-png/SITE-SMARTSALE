@@ -8,7 +8,7 @@ export const firebaseConfig = {
     messagingSenderId: "149455998150",
     appId: "1:149455998150:web:3074fba78ddd3367f65bc7"
 };
-
+ 
 // Frases motivacionais
 export const motivationalQuotes = [
   { text: "A suprema arte da guerra é derrotar o inimigo sem lutar.", author: "A Arte da Guerra" },

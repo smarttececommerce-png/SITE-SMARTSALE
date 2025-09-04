@@ -473,4 +473,4 @@ function pcUpdate() {
     const { precoSugerido, precoMinSaudavel } = pcCalc();
     document.getElementById('pc-kpi-preco').textContent = BRL.format(precoSugerido);
     document.getElementById('pc-min-saudavel').textContent = BRL.format(precoMinSaudavel);
-}
+} 

@@ -92,4 +92,4 @@ export function initializeDayjs() {
     } catch (error) {
         console.error('Erro na configuração do Day.js:', error);
     }
-}
+} 

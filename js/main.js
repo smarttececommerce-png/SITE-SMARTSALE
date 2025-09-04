@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'ponto/dashboard.html';
     });
 });
-
+ 
 // frase aleatoria
 function showRandomQuote() {
     const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
