@@ -4,6 +4,7 @@ import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWith
 import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { firebaseConfig } from './config.js';
 import { initSmartSale } from './smartsale-module.js';
+import { motivationalQuotes } from "./config.js";
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -92,6 +93,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// frase aleatoria
+function showRandomQuote() {
+    const randomIndex = Math.floor(Math.random() * motivationalQuotes.length);
+    const { text, author } = motivationalQuotes[randomIndex];
+
+    document.getElementById("quote-text").textContent = `"${text}"`;
+    document.getElementById("quote-author").textContent = `— ${author}`;
+}
+
+// Chama quando a página carrega
+document.addEventListener("DOMContentLoaded", showRandomQuote);
+
 
 // --- Funções de Login e Registo ---
 async function handleLogin() {
@@ -106,7 +119,7 @@ async function handleLogin() {
         errorEl.classList.remove('hidden');
         return;
     }
-    
+
     const userQuery = query(collection(db, "users"), where("nomeFantasia_lower", "==", username.toLowerCase()));
     const querySnapshot = await getDocs(userQuery);
 
@@ -117,7 +130,7 @@ async function handleLogin() {
     }
 
     const userData = querySnapshot.docs[0].data();
-    
+
     try {
         await signInWithEmailAndPassword(auth, userData.email, password);
     } catch (error) {
