@@ -5,12 +5,14 @@ import { doc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.
 
 let db;
 let getAllUsers;
-const auth = getAuth(); // Pega a instância de auth já inicializada
+let currentUser; // Para armazenar os dados do admin logado
+const auth = getAuth();
 
 // Função de inicialização chamada pelo admin.js
-export function initUsuariosAdmin(firestore, usersFunc) {
+export function initUsuariosAdmin(firestore, usersFunc, adminUser) {
     db = firestore;
     getAllUsers = usersFunc;
+    currentUser = adminUser; // Recebe os dados do admin
     
     console.log("Módulo de Admin de Usuários inicializado.");
     
@@ -45,12 +47,16 @@ function updateUserListUI() {
     if(!userListEl) return;
     
     userListEl.innerHTML = '';
-    getAllUsers().forEach(user => {
+    
+    // Filtra a lista para remover o admin atual
+    const usersToList = getAllUsers().filter(user => user.uid !== currentUser.uid);
+
+    usersToList.forEach(user => {
         userListEl.innerHTML += `
             <div class="user-item">
                 <div>
                     <div class="font-semibold text-sm">${user.nomeFantasia} (${user.role || 'vendedor'})</div>
-                    <div class.text-xs text-gray-400">${user.email}</div>
+                    <div class="text-xs text-gray-400">${user.email}</div>
                     <div class="text-xs text-gray-400">Salário: R$ ${(user.salarioFixo || 0).toFixed(2)}</div>
                 </div>
                 <button data-action="edit-user" data-user-id="${user.uid}" class="btn btn-sm btn-secondary">
@@ -81,8 +87,6 @@ async function handleCreateUser(e) {
 
     try {
         // 1. Cria o usuário na autenticação do Firebase
-        // ATENÇÃO: A criação de usuários no cliente pode deslogar o admin temporariamente.
-        // O ideal para produção é usar Firebase Functions (backend).
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 

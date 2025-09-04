@@ -11,7 +11,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // --- VARIÁVEIS GLOBAIS COMPARTILHADAS ---
-// Estes arrays armazenam os dados que serão passados para os módulos
+let currentUserData;
 let allUsers = [];
 let allPontoRecords = [];
 let allTasks = [];
@@ -25,13 +25,12 @@ onAuthStateChanged(auth, async (user) => {
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
+            currentUserData = { uid: user.uid, ...userDocSnap.data() };
             initializeAppPanel();
         } else {
-            // Se o usuário não for admin, volta para o hub principal
             window.location.href = 'index.html';
         }
     } else {
-        // Se não estiver logado, volta para o login
         window.location.href = 'index.html';
     }
 });
@@ -47,27 +46,22 @@ function initializeAppPanel() {
 function loadSharedDataListeners() {
     onSnapshot(query(collection(db, "users")), (snap) => {
         allUsers = snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-        // Dispara um evento personalizado para notificar os módulos que os usuários foram atualizados
         window.dispatchEvent(new CustomEvent('usersUpdated'));
     });
     
     onSnapshot(query(collection(db, "registrosPonto")), (snap) => {
         allPontoRecords = snap.docs.map(doc => doc.data());
-        // Atualiza a Visão Geral
         updateWorkingNowPanel();
-        // Notifica os módulos
         window.dispatchEvent(new CustomEvent('pontoRecordsUpdated'));
     });
     
     onSnapshot(query(collection(db, "tasks")), (snap) => {
         allTasks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Notifica os módulos
         window.dispatchEvent(new CustomEvent('tasksUpdated'));
     });
     
      onSnapshot(query(collection(db, "ausencias")), (snap) => {
         allAbsences = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-         // Notifica os módulos
         window.dispatchEvent(new CustomEvent('absencesUpdated'));
     });
     
@@ -81,32 +75,25 @@ function loadSharedDataListeners() {
 async function setupNavigation() {
     const navLinks = document.querySelectorAll('.nav-link');
     const sections = document.querySelectorAll('.admin-section');
-    const loadedModules = new Set(); // Evita carregar o mesmo módulo múltiplas vezes
+    const loadedModules = new Set();
 
     const activateTab = async (targetId) => {
-        // Mostra a seção correta no HTML
         sections.forEach(section => {
             section.style.display = section.id === targetId ? 'block' : 'none';
         });
 
-        // Carrega o módulo JS correspondente se ainda não foi carregado
         if (!loadedModules.has(targetId)) {
             try {
                 switch (targetId) {
                     case 'ponto':
                         const { initPontoAdmin } = await import('./admin/ponto.js');
-                        // Passa o 'db' e funções para obter os dados mais recentes
                         initPontoAdmin(db, () => allUsers, () => allPontoRecords, () => allAbsences, () => pontoConfig);
                         break;
                     case 'usuarios':
                         const { initUsuariosAdmin } = await import('./admin/usuarios.js');
-                        initUsuariosAdmin(db, () => allUsers);
+                        // Passa o 'currentUserData' para o módulo de usuários
+                        initUsuariosAdmin(db, () => allUsers, currentUserData);
                         break;
-                    // Futuramente, outros módulos podem ser adicionados aqui
-                    // case 'smartsale':
-                    //     const { initSmartSaleAdmin } = await import('./admin/smartsale.js');
-                    //     initSmartSaleAdmin(db, () => allUsers, () => allTasks);
-                    //     break;
                 }
                 loadedModules.add(targetId);
             } catch (error) {
@@ -125,7 +112,6 @@ async function setupNavigation() {
         });
     });
 
-    // Ativa a primeira aba ("Visão Geral") por padrão
     const initialLink = document.querySelector('.nav-link[href="#geral"]');
     if (initialLink) {
         initialLink.classList.add('active');
@@ -133,10 +119,8 @@ async function setupNavigation() {
     }
 }
 
-
 // --- FUNÇÕES DA ABA VISÃO GERAL ---
 
-// Esta função é chamada sempre que os registros de ponto ou a lista de usuários são atualizados
 function updateWorkingNowPanel() {
     const countEl = document.getElementById('workingNowCount');
     const listEl = document.getElementById('workingNowList');

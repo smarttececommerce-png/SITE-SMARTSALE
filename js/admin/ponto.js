@@ -26,6 +26,11 @@ export function initPontoAdmin(firestore, usersFunc, recordsFunc, absencesFunc, 
     
     setupPontoEventListeners();
     updatePontoUI();
+
+    // Adiciona listeners para atualizar a UI quando os dados compartilhados mudam
+    window.addEventListener('pontoRecordsUpdated', updatePontoUI);
+    window.addEventListener('usersUpdated', populateUserSelects);
+    window.addEventListener('absencesUpdated', displayAbsences);
 }
 
 function setupPontoEventListeners() {
@@ -70,11 +75,12 @@ function populateUserSelects() {
         const oldValue = select.value;
         const firstOption = select.options[0]?.cloneNode(true);
         select.innerHTML = '';
-        if(firstOption && firstOption.value === 'todos') select.appendChild(firstOption);
-        else if (firstOption) select.innerHTML = '<option value="">Selecione um funcionário</option>';
+        if(firstOption && (firstOption.value === 'todos' || firstOption.value === '')) {
+            select.appendChild(firstOption);
+        }
 
         users.forEach(user => {
-            if(user.role !== 'admin') { // Opcional: não listar outros admins
+            if(user.role !== 'admin') {
                 const option = document.createElement('option');
                 option.value = user.uid;
                 option.textContent = user.nomeFantasia;
@@ -176,27 +182,51 @@ function updatePendingJustifications() {
     });
 }
 
+// CORREÇÃO APLICADA AQUI
 async function handleJustificationAction(e) {
     const button = e.target.closest('button');
     if (!button) return;
+
     const action = button.dataset.action;
     const pendingItem = button.closest('.pending-item');
     const { recordId, employeeId } = pendingItem.dataset;
     const docRef = doc(db, "registrosPonto", `${employeeId}_${recordId}`);
+
+    // Desabilita os botões para evitar cliques duplos
+    pendingItem.querySelectorAll('button').forEach(btn => btn.disabled = true);
+
     try {
         const recordSnap = await getDoc(docRef);
         if (!recordSnap.exists()) throw new Error("Registro não encontrado!");
+        
         const recordData = recordSnap.data();
         let updateData = {};
+
         if (recordData.status === 'falta_justificada') {
-            updateData = action === 'approve' ? { aprovadoPorAdm: true, status: 'falta_abonada' } : { aprovadoPorAdm: null, justificativa: `${recordData.justificativa} (Rejeitada)` };
-        } else {
-            updateData = action === 'approve' ? { aprovadoPorAdm: true, valorDesconto: 0 } : { aprovadoPorAdm: null, justificativa: `${recordData.justificativa} (Rejeitada)` };
+            if (action === 'approve') {
+                updateData = { aprovadoPorAdm: true, status: 'falta_abonada' };
+            } else { // reject
+                 // Em vez de deletar, marcamos como rejeitada para manter o histórico
+                updateData = { aprovadoPorAdm: null, justificativa: `${recordData.justificativa} (Rejeitada)` };
+            }
+        } else { // Justificativa de atraso ou saída antecipada
+            if (action === 'approve') {
+                updateData = { aprovadoPorAdm: true, valorDesconto: 0 };
+            } else { // reject
+                updateData = { aprovadoPorAdm: null, justificativa: `${recordData.justificativa} (Rejeitada)` };
+            }
         }
         await updateDoc(docRef, updateData);
+        
+        // A lógica de atualização em tempo real do admin.js irá cuidar de redesenhar a lista.
+        // Se a atualização não for imediata, podemos forçar aqui:
+        // updatePendingJustifications();
+
     } catch (error) {
         console.error("Erro ao processar justificativa:", error);
         alert('Erro ao processar justificativa.');
+        // Reabilita os botões em caso de erro
+        pendingItem.querySelectorAll('button').forEach(btn => btn.disabled = false);
     }
 }
 
@@ -282,8 +312,7 @@ async function showRecordDetails(date) {
     }
 }
 
-
 async function generatePontoReport() {
-    // ... (A lógica completa de generatePontoReport e generateReportHTML iria aqui)
+    // Implementação da geração de relatórios
     alert("Gerando relatório...");
 }
