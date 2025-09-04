@@ -1,128 +1,151 @@
-[🚀 SITE-SMARTSALE
-📝 Descrição Geral
-O SITE-SMARTSALE é uma aplicação web robusta, concebida como um hub central de ferramentas de gestão para equipas de vendas e marketing. A plataforma unifica múltiplos painéis para monitorizar e gerir diversos aspetos do negócio, desde a produtividade da equipa e gestão de tarefas até à performance em plataformas de e-commerce e ao controlo de ponto dos funcionários.
+<div align="center">
+<img src="https://www.google.com/search?q=https://placehold.co/150x150/7c3aed/ffffff%3Ftext%3DSS" alt="Logo do Smart Sale" style="border-radius: 50%;">
+<h1 align="center">🚀 Smart Sale - Hub de Gestão</h1>
+<p align="center">
+Uma plataforma completa para gestão de vendas, produtividade e equipas, tudo num só lugar.
+</p>
+</div>
 
-Com um sistema de autenticação seguro via Firebase, a aplicação garante que cada utilizador aceda apenas às informações e ferramentas relevantes para a sua função. A interface, construída com Tailwind CSS, é moderna, responsiva e desenhada para proporcionar uma experiência de utilizador limpa e eficiente.
+<div align="center">
+<!-- Badges -->
+<img src="https://www.google.com/search?q=https://img.shields.io/badge/license-MIT-blue.svg" alt="Licença MIT">
+<img src="https://www.google.com/search?q=https://img.shields.io/badge/Frontend-HTML%252BCSS%252BJS-orange" alt="Frontend">
+<img src="https://www.google.com/search?q=https://img.shields.io/badge/Backend-Firebase-yellow" alt="Backend">
+<img src="https://www.google.com/search?q=https://img.shields.io/badge/Estilo-TailwindCSS-blueviolet" alt="Tailwind CSS">
+</div>
 
-✨ Funcionalidades Principais
-A aplicação divide-se num Hub principal para utilizadores e num painel de administração completo para a gestão total do sistema.
+<br>
 
-HUB de Aplicações (index.html)
+📚 Índice
+Sobre o Projeto
+
+✨ Funcionalidades
+
+🛠️ Tecnologias Utilizadas
+
+⚙️ Como Configurar
+
+📄 Licença
+
+👨‍💻 Autor
+
+🌟 Sobre o Projeto
+O Smart Sale é uma aplicação web robusta, concebida como um hub central de ferramentas para equipas de vendas e marketing. A plataforma unifica múltiplos painéis para monitorizar e gerir diversos aspetos do negócio, desde a produtividade da equipa e gestão de tarefas até à performance em plataformas de e-commerce e ao controlo de ponto dos funcionários.
+
+<br>
+
+📸 Demonstração
+<!-- IMPORTANTE: Substitua a imagem abaixo por um screenshot ou GIF da sua aplicação -->
+
+<div align="center">
+<img src="https://www.google.com/search?q=https://placehold.co/800x450/1e293b/ffffff%3Ftext%3DScreenshot%2Bda%2BAplica%C3%A7%C3%A3o" alt="Screenshot da Aplicação Smart Sale">
+</div>
+
+<br>
+
+✨ Funcionalidades
+A aplicação divide-se num Hub principal e num painel de administração completo.
+
+🏠 Hub de Aplicações (index.html)
 O ponto de entrada para todos os utilizadores após o login.
 
 🔐 Autenticação Segura: Sistema de Login e Registo de novas contas.
 
-🧭 Navegação Centralizada: Acesso rápido aos três módulos principais da plataforma:
+🧭 Navegação Centralizada: Acesso rápido aos três módulos principais:
 
-Smart Sale: Ferramenta para gestão de tarefas e aumento da produtividade da equipa de vendas.
+Smart Sale: Gestão de tarefas e produtividade da equipa.
 
-Dashboard OLX: Painel para gestão de anúncios, contas e análise de performance na plataforma OLX.
+Dashboard OLX: Gestão de anúncios e análise de performance.
 
-Ponto Eletrónico: Sistema para registo e gestão de ponto, horas trabalhadas e assiduidade dos funcionários.
+Ponto Eletrónico: Registo e gestão de ponto e assiduidade.
 
 👑 Painel de Administração (admin.html)
-Uma área restrita para administradores, que oferece controlo total sobre todos os módulos e utilizadores do sistema.
+Uma área restrita para administradores com controlo total sobre o sistema.
 
-📊 Visão Geral (Dashboard):
+📊 Visão Geral: Dashboard com status dos funcionários e resumo de tarefas.
 
-Monitorização em tempo real dos funcionários que estão a trabalhar.
+⏰ Gestão de Ponto: Aprovação de justificativas, configuração de bónus e relatórios.
 
-Resumo das tarefas do "Smart Sale" (pendentes e concluídas no dia).
+📈 Gestão de Vendas: Visualização de tarefas e definição de metas.
 
-⏰ Gestão de Ponto Eletrónico:
-
-Aprovação de justificativas de ausência pendentes.
-
-Configuração de parâmetros como tolerância de atraso e bónus por pontualidade.
-
-Calendário interativo para visualização detalhada dos registos de ponto por funcionário.
-
-Ferramenta para gerar relatórios mensais de frequência e horas.
-
-📈 Gestão do Smart Sale e OLX:
-
-Visualização centralizada de todas as tarefas pendentes.
-
-Definição de metas diárias de anúncios e geração de relatórios de performance.
-
-👥 Gestão de Utilizadores:
-
-Criação de Novos Utilizadores: Registo de novos membros com informações detalhadas (cargo, salário, horários).
-
-Edição e Listagem: Visualização de todos os utilizadores com a possibilidade de editar ou remover o seu acesso.
-
-📂 Estrutura do Projeto
-/
-|-- index.html            # Tela principal de Login e Hub de aplicações
-|-- admin.html            # Painel de Administração
-|-- style.css             # Estilos globais
-|-- admin.css             # Estilos específicos para o painel admin
-|
-|-- js/
-|   |-- main.js               # Lógica do Hub, autenticação e navegação
-|   |-- admin.js              # Lógica principal do painel de administração
-|   |-- smartsale-module.js   # Módulo de funcionalidades do Smart Sale
-|   |-- config.js             # Configurações do Firebase
-|   |-- ... (outros scripts)
-|
-|-- ponto/
-|   |-- dashboard.html        # Dashboard do Ponto Eletrónico para o utilizador
-|   |-- ... (outros arquivos do módulo de ponto)
-|
-|-- README.md             # Este arquivo
+👥 Gestão de Utilizadores: Adicione, edite ou remova utilizadores facilmente.
 
 🛠️ Tecnologias Utilizadas
-🖥️ Frontend:
+Este projeto foi construído com as seguintes tecnologias:
+
+Tecnologia
+
+Descrição
 
 HTML5
 
+Estruturação do conteúdo web.
+
 CSS3
 
-JavaScript (ECMAScript 6 Modules)
+Estilização e design.
 
-📚 Frameworks e Bibliotecas:
+JavaScript
 
-Tailwind CSS: Para a construção de uma interface moderna e responsiva.
+Lógica e interatividade do lado do cliente.
 
-Font Awesome: Para ícones vetoriais.
+Tailwind CSS
 
-Day.js: Para manipulação avançada de datas e horas.
+Framework CSS para design rápido e responsivo.
 
-Chart.js: Para a criação de gráficos e relatórios visuais.
+Firebase
 
-☁️ Backend e Base de Dados:
+Plataforma para autenticação e base de dados.
 
-Firebase:
+Day.js
 
-Authentication: Para gestão segura de login e registo de utilizadores.
+Biblioteca para manipulação de datas e horas.
 
-Firestore: Como base de dados NoSQL para armazenar informações de utilizadores, tarefas, registos, etc.
+Chart.js
 
-⚙️ Como Configurar o Projeto
-Clonar o Repositório:
+Criação de gráficos e relatórios visuais.
+
+Font Awesome
+
+Biblioteca de ícones.
+
+⚙️ Como Configurar
+Siga os passos abaixo para executar o projeto localmente.
+
+Pré-requisitos
+Uma conta no Firebase.
+
+Python (para executar um servidor local simples).
+
+Git para clonar o repositório.
+
+Instalação
+Clone o repositório:
 
 git clone [https://github.com/seu-usuario/SITE-SMARTSALE.git](https://github.com/seu-usuario/SITE-SMARTSALE.git)
+cd SITE-SMARTSALE
 
-Configurar o Firebase:
+Configure o Firebase:
 
 Crie um novo projeto na consola do Firebase.
 
 Ative os serviços de Authentication (com o provedor de E-mail/Senha) e Firestore Database.
 
-Na secção de configurações do seu projeto no Firebase, encontre e copie as credenciais de configuração da sua aplicação web.
+Nas configurações do projeto, copie as credenciais de configuração da sua aplicação web.
 
-Cole essas credenciais no ficheiro js/config.js, substituindo o objeto firebaseConfig de exemplo.
+Cole as credenciais no ficheiro js/config.js.
 
-Executar a Aplicação:
+Execute a Aplicação:
 
-Como o projeto utiliza módulos JavaScript, é recomendado executá-lo a partir de um servidor local.
+Como o projeto utiliza Módulos JavaScript, é necessário executá-lo a partir de um servidor local.
 
-Pode usar a extensão "Live Server" no Visual Studio Code ou iniciar um servidor simples com Python:
-
-# Se tiver Python 3.x
+# Se tiver Python 3.x instalado
 python -m http.server
 
-Abra o navegador e aceda ao endereço fornecido (geralmente http://localhost:8000).
+Abra o navegador e aceda a http://localhost:8000.
 
-Desenvolvido por ZainLet
-](https://g.co/gemini/share/4c11ab0d30ab)
+📄 Licença
+Este projeto está sob a licença MIT. Veja o ficheiro LICENSE para mais detalhes.
+
+👨‍💻 Autor
+Desenvolvido por ZainLet.
