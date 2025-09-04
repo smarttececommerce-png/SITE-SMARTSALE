@@ -1,115 +1,240 @@
-/* js/smartsale-module.js */
-import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { motivationalQuotes } from './config.js';
+// js/smartsale-module.js
+import {
+    collection,
+    query,
+    where,
+    onSnapshot,
+    doc,
+    updateDoc,
+    addDoc,
+    serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-let db;
+let db; // Variável para armazenar a instância do Firestore
 let currentUser;
+let showScreen;
+
+// Variável global para manter a referência do listener do Firestore
 let unsubscribeTasks = null;
 
-function getMotivationalQuote() {
-    const quote = motivationalQuotes[new Date().getDate() % motivationalQuotes.length];
-    return `<p class="italic">"${quote.text}"</p><small class="opacity-80">- ${quote.author}</small>`;
+export function initSmartSale(databaseInstance, user, showScreenCallback) {
+    // CORREÇÃO: Atribui a instância do Firestore diretamente, em vez de chamar getFirestore() novamente.
+    db = databaseInstance;
+    currentUser = user;
+    showScreen = showScreenCallback;
+
+    console.log("Módulo SmartSale inicializado para:", currentUser.nomeFantasia);
+
+    // Carrega o conteúdo HTML do módulo no container
+    loadModuleContent();
+
+    // Adiciona event listeners e busca os dados depois que o conteúdo for carregado.
+    // Usamos um pequeno timeout para garantir que o DOM foi atualizado.
+    setTimeout(() => {
+        setupEventListeners();
+        fetchAndDisplayTasks();
+    }, 100);
 }
 
-export function initSmartSale(app, user, showScreen) {
-    db = getFirestore(app);
-    currentUser = user;
+function loadModuleContent() {
     const container = document.getElementById('smartsale-screen');
-
-    // Estrutura HTML da página Smart Sale
+    if (!container) {
+        console.error("Container do SmartSale não encontrado!");
+        return;
+    }
+    // O HTML do módulo SmartSale vai aqui.
+    // Este é um exemplo de estrutura, você deve adaptá-lo às suas necessidades.
     container.innerHTML = `
-        <header class="app-header">
-            <button id="smartsale-back-btn" class="back-to-hub"><i class="fas fa-arrow-left mr-2"></i>Voltar ao HUB</button>
-            <h2 class="text-xl font-bold">Smart Sale - Gestão de Equipa</h2>
-            <div></div>
-        </header>
-        <div id="smartsale-content" class="p-4 md:p-6 lg:p-8">
-            <div class="mb-6 bg-blue-500 text-white p-4 rounded-lg text-center shadow-lg">${getMotivationalQuote()}</div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="card-ss">
-                    <h3 class="text-lg font-semibold">Minhas Tarefas</h3>
-                    <div id="ss-tasks-list" class="space-y-3 mt-4">Carregando...</div>
+        <div class="smartsale-container bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-4 sm:p-6 lg:p-8 min-h-screen">
+            <header class="flex flex-wrap justify-between items-center mb-6 gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Smart Sale - Gestor de Tarefas</h1>
+                    <p class="text-gray-600 dark:text-gray-400">Bem-vindo, ${currentUser.nomeFantasia}!</p>
                 </div>
-                <div class="card-ss" id="ss-dynamic-panel">
-                    <!-- Painel do Admin ou de Metas será inserido aqui -->
+                <button id="smartsale-back-to-hub" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left mr-2"></i> Voltar ao Hub
+                </button>
+            </header>
+            
+            <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-bold mb-4">Adicionar Nova Tarefa</h2>
+                    <form id="add-task-form" class="space-y-4">
+                        <input type="text" id="task-title" placeholder="Título da Tarefa" class="w-full input-style" required>
+                        <textarea id="task-description" placeholder="Descrição (opcional)" class="w-full input-style" rows="4"></textarea>
+                        <select id="task-priority" class="w-full input-style">
+                            <option value="baixa">Prioridade Baixa</option>
+                            <option value="media" selected>Prioridade Média</option>
+                            <option value="alta">Prioridade Alta</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary w-full">Adicionar Tarefa</button>
+                    </form>
                 </div>
-            </div>
+
+                <div class="lg:col-span-2 space-y-6">
+                    <div>
+                        <h2 class="text-xl font-bold mb-4">A Fazer</h2>
+                        <div id="tasks-todo" class="task-list space-y-3">
+                            </div>
+                    </div>
+                     <div>
+                        <h2 class="text-xl font-bold mb-4">Concluídas</h2>
+                        <div id="tasks-done" class="task-list space-y-3">
+                            </div>
+                    </div>
+                </div>
+            </main>
         </div>
     `;
+}
 
-    // Renderiza o painel correto para o tipo de utilizador
-    if (currentUser && currentUser.role === 'admin') {
-        renderAdminPanel();
-    } else {
-        renderSalesPanel();
+function setupEventListeners() {
+    const backButton = document.getElementById('smartsale-back-to-hub');
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            // Cancela o listener do Firestore para evitar consumo desnecessário de recursos
+            if (unsubscribeTasks) {
+                unsubscribeTasks();
+                unsubscribeTasks = null;
+            }
+            showScreen('hub');
+        });
     }
 
-    // Associa os listeners
-    document.getElementById('smartsale-back-btn').addEventListener('click', () => showScreen('hub'));
-    listenToUserTasks(currentUser.uid);
+    const addTaskForm = document.getElementById('add-task-form');
+    if (addTaskForm) {
+        addTaskForm.addEventListener('submit', handleAddTask);
+    }
 }
 
-function listenToUserTasks(userId) {
-    if (unsubscribeTasks) unsubscribeTasks();
-    const q = query(collection(db, "tasks"), where("userId", "==", userId), where("status", "==", "pendente"));
-    unsubscribeTasks = onSnapshot(q, snapshot => {
-        const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const listEl = document.getElementById('ss-tasks-list');
-        if (!listEl) return;
-        listEl.innerHTML = tasks.length === 0 
-            ? '<p class="text-gray-500">Nenhuma tarefa pendente.</p>'
-            : tasks.map(task => `
-                <div class="ss-task">
-                    <span>${task.description}</span>
-                    <button data-id="${task.id}" class="complete-task-btn bg-green-500 text-white text-xs px-2 py-1 rounded">Concluir</button>
-                </div>`).join('');
-        
-        listEl.querySelectorAll('.complete-task-btn').forEach(btn => btn.addEventListener('click', (e) => {
-            const taskRef = doc(db, "tasks", e.target.dataset.id);
-            updateDoc(taskRef, { status: "concluida" });
-        }));
-    });
-}
+async function handleAddTask(event) {
+    event.preventDefault();
+    const title = document.getElementById('task-title').value.trim();
+    const description = document.getElementById('task-description').value.trim();
+    const priority = document.getElementById('task-priority').value;
 
-async function renderAdminPanel() {
-    const container = document.getElementById('ss-dynamic-panel');
-    container.innerHTML = `
-        <h3 class="text-lg font-semibold">Painel Administrativo</h3>
-        <div class="mt-4">
-            <h4 class="font-medium">Adicionar Tarefa</h4>
-            <select id="admin-task-user" class="w-full p-2 border rounded mt-2 bg-gray-50 dark:bg-gray-700 dark:border-gray-600"></select>
-            <input id="admin-task-desc" placeholder="Descrição da tarefa" class="w-full p-2 border rounded mt-2 bg-gray-50 dark:bg-gray-700 dark:border-gray-600" />
-            <button id="admin-add-task-btn" class="bg-blue-600 text-white w-full mt-2 py-2 rounded">Adicionar</button>
-        </div>
-    `;
+    if (!title) {
+        alert("O título da tarefa é obrigatório.");
+        return;
+    }
 
-    const userSelect = document.getElementById('admin-task-user');
-    
-    // Carrega os utilizadores da base de dados
-    const usersQuery = query(collection(db, "users"), where("role", "!=", "admin"));
-    const querySnapshot = await getDocs(usersQuery);
-    const employees = querySnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-    
-    userSelect.innerHTML = employees.map(user => `<option value="${user.uid}">${user.nomeFantasia}</option>`).join('');
-    
-    document.getElementById('admin-add-task-btn').addEventListener('click', () => {
-        const userId = userSelect.value;
-        const descInput = document.getElementById('admin-task-desc');
-        if (!descInput.value.trim() || !userId) return;
-        addDoc(collection(db, "tasks"), { 
-            userId, 
-            description: descInput.value.trim(), 
-            status: "pendente", 
-            createdAt: new Date() 
+    try {
+        await addDoc(collection(db, 'tasks'), {
+            title: title,
+            description: description,
+            priority: priority,
+            assignedTo: currentUser.uid,
+            status: 'pendente', // pendente, concluida
+            createdAt: serverTimestamp()
         });
-        descInput.value = '';
+        // Limpa o formulário
+        event.target.reset();
+    } catch (error) {
+        console.error("Erro ao adicionar tarefa: ", error);
+        alert("Não foi possível adicionar a tarefa. Tente novamente.");
+    }
+}
+
+function fetchAndDisplayTasks() {
+    // Se já houver um listener ativo, cancela-o antes de criar um novo
+    if (unsubscribeTasks) {
+        unsubscribeTasks();
+    }
+
+    const tasksCollection = collection(db, 'tasks');
+    // Cria uma query para buscar tarefas atribuídas ao usuário atual
+    const q = query(
+        tasksCollection, 
+        where("assignedTo", "==", currentUser.uid)
+    );
+
+    unsubscribeTasks = onSnapshot(q, (querySnapshot) => {
+        const todoTasks = [];
+        const doneTasks = [];
+
+        querySnapshot.forEach((doc) => {
+            const task = { id: doc.id, ...doc.data() };
+            if (task.status === 'concluida') {
+                doneTasks.push(task);
+            } else {
+                todoTasks.push(task);
+            }
+        });
+
+        // Ordena as tarefas por prioridade
+        const priorityOrder = { 'alta': 1, 'media': 2, 'baixa': 3 };
+        todoTasks.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+        renderTasks(todoTasks, 'tasks-todo');
+        renderTasks(doneTasks, 'tasks-done');
+
+    }, (error) => {
+        console.error("Erro ao buscar tarefas: ", error);
+        alert("Não foi possível carregar as tarefas.");
     });
 }
 
-function renderSalesPanel() {
-    document.getElementById('ss-dynamic-panel').innerHTML = `
-        <h3 class="text-lg font-semibold">Metas de Vendas</h3>
-        <p class="text-gray-500 mt-4">Módulo de metas em desenvolvimento.</p>
-    `;
+function renderTasks(tasks, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    container.innerHTML = ''; // Limpa a lista antes de renderizar
+
+    if (tasks.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 italic">Nenhuma tarefa aqui.</p>';
+        return;
+    }
+
+    tasks.forEach(task => {
+        const taskElement = document.createElement('div');
+        taskElement.className = `task-card bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex items-center justify-between gap-4 ${task.status === 'concluida' ? 'opacity-60' : ''}`;
+        taskElement.dataset.id = task.id;
+
+        const priorityClasses = {
+            alta: 'bg-red-500',
+            media: 'bg-yellow-500',
+            baixa: 'bg-green-500'
+        };
+
+        taskElement.innerHTML = `
+            <div class="flex items-center gap-4 flex-grow">
+                 <div class="w-1.5 h-10 rounded-full ${priorityClasses[task.priority] || 'bg-gray-400'}"></div>
+                <input type="checkbox" class="task-checkbox h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" ${task.status === 'concluida' ? 'checked' : ''}>
+                <div>
+                    <p class="font-semibold ${task.status === 'concluida' ? 'line-through' : ''}">${task.title}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${task.description || ''}</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-medium capitalize px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700">${task.priority}</span>
+            </div>
+        `;
+
+        container.appendChild(taskElement);
+    });
+    
+    // Adiciona os event listeners aos checkboxes após renderizar
+    container.querySelectorAll('.task-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', handleTaskStatusChange);
+    });
 }
 
+async function handleTaskStatusChange(event) {
+    const checkbox = event.target;
+    const taskCard = checkbox.closest('.task-card');
+    const taskId = taskCard.dataset.id;
+    const newStatus = checkbox.checked ? 'concluida' : 'pendente';
+
+    const taskRef = doc(db, 'tasks', taskId);
+
+    try {
+        await updateDoc(taskRef, {
+            status: newStatus
+        });
+    } catch (error) {
+        console.error("Erro ao atualizar status da tarefa: ", error);
+        // Reverte a mudança no checkbox se a atualização falhar
+        alert("Não foi possível atualizar a tarefa.");
+        checkbox.checked = !checkbox.checked;
+    }
+}

@@ -7,18 +7,15 @@ let currentUserData;
 
 // 1. Ponto de entrada: verifica a autenticação e os dados do utilizador.
 checkAuth((userData) => {
-    // Se o utilizador não for um administrador, redireciona para o dashboard do funcionário.
     if (!userData || userData.role !== 'admin') {
         window.location.href = 'dashboard.html';
         return;
     }
-    // Se for um administrador, armazena os dados e inicializa o painel.
     currentUserData = userData;
     initializeAdminPanel();
 });
 
-
-// Variáveis globais para o admin
+// ... (O início do seu código permanece o mesmo) ...
 let allUsers = [];
 let allAbsences = [];
 let latenessChartInstance;
@@ -34,7 +31,6 @@ let calendarState = {
     records: [],
 };
 
-// 2. Função de inicialização do painel de administração
 function initializeAdminPanel() {
     initializeDayjs();
     setupThemeToggle();
@@ -43,16 +39,13 @@ function initializeAdminPanel() {
     listenToUsers();
     listenToAbsences();
     listenToRecordsForAdmin();
-
     document.getElementById('createUserForm')?.addEventListener('submit', handleCreateUser);
     document.getElementById('createAbsenceForm')?.addEventListener('submit', handleCreateAbsence);
     document.getElementById('saveSettings')?.addEventListener('click', saveAdminSettings);
     document.getElementById('generateReportBtn')?.addEventListener('click', generateReport);
-    
     document.getElementById('calendar-prev-month')?.addEventListener('click', () => changeMonth(-1));
     document.getElementById('calendar-next-month')?.addEventListener('click', () => changeMonth(1));
     document.getElementById('calendar-user-select')?.addEventListener('change', renderCalendar);
-
     document.getElementById('userList')?.addEventListener('click', (e) => {
         const button = e.target.closest('button');
         if (!button) return;
@@ -64,7 +57,6 @@ function initializeAdminPanel() {
             confirmDeleteUser(userId);
         }
     });
-
     document.getElementById('absenceList')?.addEventListener('click', (e) => {
         const button = e.target.closest('button');
         if (!button) return;
@@ -73,20 +65,16 @@ function initializeAdminPanel() {
             confirmDeleteAbsence(id);
         }
     });
-
     document.getElementById('pendingJustifications')?.addEventListener('click', handleJustificationAction);
     document.getElementById('editUserForm')?.addEventListener('submit', handleEditUser);
     document.getElementById('cancelEditUser')?.addEventListener('click', () => document.getElementById('editUserModal').classList.add('hidden'));
-    
     document.getElementById('confirmDelete')?.addEventListener('click', () => {
         if (currentDeleteAction) currentDeleteAction();
         document.getElementById('confirmDeleteModal').classList.add('hidden');
     });
     document.getElementById('cancelDelete')?.addEventListener('click', () => document.getElementById('confirmDeleteModal').classList.add('hidden'));
 }
-
-
-// --- FUNÇÕES DO PAINEL DO ADMIN ---
+// ... (As funções até openEditUserModal permanecem as mesmas) ...
 
 async function loadAdminData() {
     const configRef = doc(db, "configuracaoPonto", "default");
@@ -107,12 +95,9 @@ function listenToUsers() {
         const absenceUserSelect = document.getElementById('absenceAppliesTo');
         const reportUserSelect = document.getElementById('reportUser');
         const calendarUserSelect = document.getElementById('calendar-user-select');
-
         if (!userListEl || !absenceUserSelect || !reportUserSelect || !calendarUserSelect) return;
-
         userListEl.innerHTML = '';
         allUsers = [];
-        
         const selectsToClear = [absenceUserSelect, reportUserSelect, calendarUserSelect];
         selectsToClear.forEach(sel => {
             const isAbsenceSelect = sel.id === 'absenceAppliesTo';
@@ -120,16 +105,13 @@ function listenToUsers() {
                 sel.remove(isAbsenceSelect ? sel.options.length - 1 : 0);
             }
         });
-
         querySnapshot.forEach((doc) => {
-            const user = doc.data();
+            const user = { uid: doc.id, ...doc.data() };
             allUsers.push(user);
-            
             let horarioStr = `${user.horarioEntrada1 || '--:--'}-${user.horarioSaida1 || '--:--'}`;
             if (user.horarioEntrada2 && user.horarioSaida2) {
                 horarioStr += ` | ${user.horarioEntrada2}-${user.horarioSaida2}`;
             }
-
             const userDiv = document.createElement('div');
             userDiv.className = "user-item";
             userDiv.innerHTML = `
@@ -144,7 +126,6 @@ function listenToUsers() {
                 </div>
             `;
             userListEl.appendChild(userDiv);
-            
             const option = document.createElement('option');
             option.value = user.uid;
             option.textContent = user.nomeFantasia;
@@ -152,7 +133,6 @@ function listenToUsers() {
             reportUserSelect.appendChild(option.cloneNode(true));
             calendarUserSelect.appendChild(option.cloneNode(true));
         });
-        
         renderCalendar();
     });
 }
@@ -189,10 +169,8 @@ function listenToRecordsForAdmin() {
                 allRecords.push(doc.data());
             }
         });
-        
         calendarState.records = allRecords;
         renderCalendar();
-
         const sortedRecords = allRecords.sort((a, b) => dayjs(b.data.toDate()).diff(dayjs(a.data.toDate())));
         updatePendingJustifications(sortedRecords);
         updateAnalyticsChart(sortedRecords);
@@ -204,11 +182,9 @@ function updateWorkingNowPanel(records) {
     const workingNowCountEl = document.getElementById('workingNowCount');
     const workingNowListEl = document.getElementById('workingNowList');
     if (!workingNowCountEl || !workingNowListEl) return;
-
     const workingNowRecords = records.filter(record => record.status === 'em_andamento');
     workingNowCountEl.textContent = workingNowRecords.length;
     workingNowListEl.innerHTML = '';
-
     if (workingNowRecords.length === 0) {
         workingNowListEl.innerHTML = '<p class="text-center text-gray-500">Nenhum funcionário trabalhando no momento.</p>';
     } else {
@@ -231,12 +207,10 @@ function updatePendingJustifications(records) {
     if(!container) return;
     const pending = records.filter(r => r.justificativa && r.aprovadoPorAdm === false);
     container.innerHTML = '';
-
     if (pending.length === 0) {
         container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center">Nenhuma justificativa pendente.</p>';
         return;
     }
-
     pending.forEach(record => {
         const user = allUsers.find(u => u.uid === record.employeeId);
         const el = document.createElement('div');
@@ -254,36 +228,31 @@ function updatePendingJustifications(records) {
         container.appendChild(el);
     });
 }
-
 async function handleJustificationAction(e) {
     if (!e.target.matches('.approve-btn, .reject-btn')) return;
-    
     const action = e.target.dataset.action;
     const pendingItem = e.target.closest('.pending-item');
     const recordId = pendingItem.dataset.recordId;
     const employeeId = pendingItem.dataset.employeeId;
     const docRef = doc(db, "registrosPonto", `${employeeId}_${recordId}`);
-    
     try {
         const recordSnap = await getDoc(docRef);
         if (!recordSnap.exists()) {
             console.error("Registro não encontrado!");
             return;
         }
-
         const recordData = recordSnap.data();
         if (recordData.status === 'falta_justificada') {
             if (action === 'approve') {
                 await updateDoc(docRef, { aprovadoPorAdm: true, status: 'falta_abonada' });
-            } else { // reject
+            } else {
                 await deleteDoc(docRef);
             }
-        } 
-        else { // Justificativa de atraso ou saída antecipada
+        } else {
             if (action === 'approve') {
                 await updateDoc(docRef, { aprovadoPorAdm: true, valorDesconto: 0 });
-            } else { // reject
-                await updateDoc(docRef, { aprovadoPorAdm: null, justificativa: `${recordData.justificativa} (Rejeitada)` }); 
+            } else {
+                await updateDoc(docRef, { aprovadoPorAdm: null, justificativa: `${recordData.justificativa} (Rejeitada)` });
             }
         }
     } catch (error) {
@@ -292,27 +261,46 @@ async function handleJustificationAction(e) {
     }
 }
 
-// Note: A criação de usuários agora é feita no hub principal (main.js)
-// Esta função foi removida para centralizar a lógica.
 async function handleCreateUser(event) {
     event.preventDefault();
     alert("A criação de usuários deve ser feita na tela de login/registo do Hub principal.");
 }
 
-
+// CORREÇÃO 1: Função reescrita para ser mais segura e evitar o erro.
+// Ela agora verifica se cada campo do formulário existe antes de tentar usá-lo.
 function openEditUserModal(user) {
-    document.getElementById('editUserId').value = user.uid;
-    document.getElementById('editUserNome').value = user.nomeFantasia;
-    document.getElementById('editUserRole').value = user.role || 'vendedor';
-    document.getElementById('editUserSalary').value = user.salarioFixo;
+    // Mapeia os IDs dos campos do formulário para os dados do usuário
+    const fields = {
+        'editUserId': user.uid,
+        'editUserNome': user.nomeFantasia,
+        'editUserRole': user.role || 'vendedor',
+        'editUserSalary': user.salarioFixo || 0,
+        'editUserEntryTime1': user.horarioEntrada1 || '',
+        'editUserLeaveTime1': user.horarioSaida1 || '',
+        'editUserEntryTime2': user.horarioEntrada2 || '',
+        'editUserLeaveTime2': user.horarioSaida2 || ''
+    };
+
+    // Itera sobre os campos e preenche seus valores
+    for (const id in fields) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.value = fields[id];
+        } else {
+            // Se um campo não for encontrado, exibe um erro no console.
+            // Isso ajuda a identificar qual ID está faltando no seu HTML.
+            console.error(`Elemento do formulário com ID '${id}' não foi encontrado.`);
+        }
+    }
     
-    document.getElementById('editUserEntryTime1').value = user.horarioEntrada1 || '';
-    document.getElementById('editUserLeaveTime1').value = user.horarioSaida1 || '';
-    document.getElementById('editUserEntryTime2').value = user.horarioEntrada2 || '';
-    document.getElementById('editUserLeaveTime2').value = user.horarioSaida2 || '';
-    
-    document.getElementById('editUserModal').classList.remove('hidden');
+    const modal = document.getElementById('editUserModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.error("Modal com ID 'editUserModal' não encontrado.");
+    }
 }
+
 
 async function handleEditUser(event) {
     event.preventDefault();
@@ -320,17 +308,14 @@ async function handleEditUser(event) {
     const nomeFantasia = document.getElementById('editUserNome').value.trim();
     const role = document.getElementById('editUserRole').value;
     const salarioFixo = parseFloat(document.getElementById('editUserSalary').value);
-
     const horarioEntrada1 = document.getElementById('editUserEntryTime1').value || null;
     const horarioSaida1 = document.getElementById('editUserLeaveTime1').value || null;
     const horarioEntrada2 = document.getElementById('editUserEntryTime2').value || null;
     const horarioSaida2 = document.getElementById('editUserLeaveTime2').value || null;
-
     if (!nomeFantasia || isNaN(salarioFixo) || !horarioEntrada1 || !horarioSaida1) {
         alert('Preencha pelo menos nome, salário e o turno da manhã.');
         return;
     }
-
     try {
         const updateData = { 
             nomeFantasia, 
@@ -342,7 +327,6 @@ async function handleEditUser(event) {
             horarioSaida2,
             atualizadoEm: new Date().toISOString()
         };
-        
         const userRef = doc(db, "users", uid);
         await updateDoc(userRef, updateData);
         document.getElementById('editUserModal').classList.add('hidden');
@@ -354,12 +338,15 @@ async function handleEditUser(event) {
 
 function confirmDeleteUser(userId) {
     const user = allUsers.find(u => u.uid === userId);
+    if (!user) {
+        console.error("Usuário não encontrado para exclusão:", userId);
+        alert("Não foi possível encontrar o usuário para excluir.");
+        return;
+    }
     showConfirmDeleteModal(`Tem certeza que deseja excluir o usuário "${user.nomeFantasia}"? Esta ação não pode ser desfeita.`, async () => {
         try {
             const userRef = doc(db, "users", userId);
             await deleteDoc(userRef);
-            // ATENÇÃO: Isto não remove o usuário do Firebase Auth. 
-            // A exclusão no Auth requer um ambiente de backend (Cloud Functions) por segurança.
             alert("Usuário removido do banco de dados. A remoção da autenticação deve ser feita manualmente ou via backend.");
         } catch (error) {
             console.error("Erro ao deletar usuário:", error);
@@ -373,12 +360,10 @@ async function handleCreateAbsence(event) {
     const date = document.getElementById('absenceDate').value;
     const description = document.getElementById('absenceDescription').value.trim();
     const appliesTo = document.getElementById('absenceAppliesTo').value;
-    
     if (!date || !description) {
         alert('Preencha todos os campos.');
         return;
     }
-
     try {
         const absenceId = `${date}_${appliesTo}_${Date.now()}`;
         const absenceRef = doc(db, "ausencias", absenceId);
@@ -424,34 +409,26 @@ function changeMonth(direction) {
 function renderCalendar() {
     const userSelect = document.getElementById('calendar-user-select');
     if (!userSelect || !userSelect.value) return; 
-    
     const selectedUserId = userSelect.value;
     const grid = document.getElementById('calendar-grid');
     const title = document.getElementById('calendar-month-year');
     grid.innerHTML = '';
-    
     const currentDate = dayjs().year(calendarState.year).month(calendarState.month);
     title.textContent = currentDate.format('MMMM YYYY');
-    
     const firstDayOfMonth = currentDate.startOf('month').day();
     const daysInMonth = currentDate.daysInMonth();
-    
     for (let i = 0; i < firstDayOfMonth; i++) {
         grid.appendChild(document.createElement('div'));
     }
-
     for (let day = 1; day <= daysInMonth; day++) {
         const cell = document.createElement('div');
         cell.className = 'cal-cell';
         const date = currentDate.date(day);
-        
         cell.innerHTML = `<div class="cal-day">${day}</div>`;
         if (date.isSame(dayjs(), 'day')) {
             cell.classList.add('today');
         }
-
         const record = calendarState.records.find(r => r.employeeId === selectedUserId && dayjs(r.data.toDate()).isSame(date, 'day'));
-        
         if (record) {
             const statusDot = document.createElement('div');
             statusDot.className = 'cal-status-dot';
@@ -461,22 +438,18 @@ function renderCalendar() {
             else if (record.status === 'falta_abonada') statusDot.classList.add('status-blue');
             cell.appendChild(statusDot);
         }
-        
         cell.addEventListener('click', () => showRecordDetails(selectedUserId, date));
         grid.appendChild(cell);
     }
 }
-
 async function showRecordDetails(userId, date) {
     const detailsArea = document.getElementById('calendar-record-details');
     detailsArea.classList.remove('hidden');
     detailsArea.innerHTML = `<p class="text-center text-gray-500">Carregando detalhes para ${date.format('DD/MM/YYYY')}...</p>`;
-    
     const dateStr = date.format('YYYY-MM-DD');
     const recordId = `${userId}_${dateStr}`;
     const recordRef = doc(db, "registrosPonto", recordId);
     const docSnap = await getDoc(recordRef);
-
     if (docSnap.exists()) {
         const data = docSnap.data();
         detailsArea.innerHTML = `
@@ -553,7 +526,6 @@ function updateAnalyticsChart(records) {
         }
     });
 }
-
 async function saveAdminSettings() {
     const newConfig = {
         valorHoraExtra: parseFloat(document.getElementById('valorHoraExtra').value) || config.valorHoraExtra,
@@ -561,7 +533,6 @@ async function saveAdminSettings() {
         punctualityBonusValue: parseFloat(document.getElementById('punctualityBonusValue').value) || config.punctualityBonusValue,
         diasTrabalho: config.diasTrabalho || [1, 2, 3, 4, 5]
     };
-
     try {
         const docRef = doc(db, "configuracaoPonto", "default");
         await setDoc(docRef, newConfig, { merge: true });
@@ -579,23 +550,18 @@ async function saveAdminSettings() {
         alert('Erro ao salvar configurações.');
     }
 }
-
 async function generateReport() {
     const userId = document.getElementById('reportUser').value;
     const month = document.getElementById('reportMonth').value;
-    
     if (!userId || !month) {
         alert('Selecione um usuário e um mês.');
         return;
     }
-
     try {
         const [year, monthNum] = month.split('-');
         const startDate = dayjs(`${year}-${monthNum}-01`);
         const endDate = startDate.endOf('month');
-        
         const q = query(collection(db, "registrosPonto"), where("employeeId", "==", userId));
-        
         const querySnapshot = await getDocs(q);
         const records = [];
         querySnapshot.forEach((doc) => {
@@ -605,24 +571,23 @@ async function generateReport() {
                 records.push(data);
             }
         });
-
         const user = allUsers.find(u => u.uid === userId);
         if (!user) {
             alert('Usuário não encontrado.');
             return;
         }
-
         const reportHTML = generateReportHTML(user, records, startDate, endDate);
         const reportWindow = window.open('', '_blank');
         reportWindow.document.write(reportHTML);
         reportWindow.document.close();
-        
     } catch (error) {
         console.error('Erro ao gerar relatório:', error);
         alert('Erro ao gerar relatório.');
     }
 }
 
+// CORREÇÃO 2: Função reescrita para usar valores padrão (0) antes de chamar .toFixed().
+// Isso evita o erro se algum valor financeiro for 'undefined'.
 function generateReportHTML(user, records, startDate, endDate) {
     let totalWorkedMinutes = 0;
     let totalLatenessMinutes = 0;
@@ -680,7 +645,7 @@ function generateReportHTML(user, records, startDate, endDate) {
 
     const overtimeValue = totalOvertimeMinutes * (config.valorHoraExtra || 0.75);
     const punctualityBonus = latenessCount === 0 ? (config.punctualityBonusValue || 50) : 0;
-    const finalSalary = user.salarioFixo + overtimeValue + punctualityBonus - totalDeductions;
+    const finalSalary = (user.salarioFixo || 0) + overtimeValue + punctualityBonus - totalDeductions;
 
     return `
         <!DOCTYPE html>
@@ -713,12 +678,12 @@ function generateReportHTML(user, records, startDate, endDate) {
                     <div class="report-section">
                         <h3 class="text-lg font-semibold mb-3">Valores Financeiros</h3>
                         <ul class="space-y-2 text-sm">
-                            <li><strong>Salário base:</strong> R$ ${user.salarioFixo.toFixed(2)}</li>
-                            <li><strong>Valor horas extras:</strong> + R$ ${overtimeValue.toFixed(2)}</li>
-                            <li><strong>Bônus pontualidade:</strong> + R$ ${punctualityBonus.toFixed(2)}</li>
-                            <li><strong>Descontos por Atrasos:</strong> - R$ ${latenessDeductions.toFixed(2)}</li>
-                            <li><strong>Descontos por Faltas:</strong> - R$ ${absenceDeductions.toFixed(2)}</li>
-                            <li class="pt-2 border-t mt-2 font-bold"><strong>Salário final:</strong> R$ ${finalSalary.toFixed(2)}</li>
+                            <li><strong>Salário base:</strong> R$ ${(user.salarioFixo || 0).toFixed(2)}</li>
+                            <li><strong>Valor horas extras:</strong> + R$ ${(overtimeValue || 0).toFixed(2)}</li>
+                            <li><strong>Bônus pontualidade:</strong> + R$ ${(punctualityBonus || 0).toFixed(2)}</li>
+                            <li><strong>Descontos por Atrasos:</strong> - R$ ${(latenessDeductions || 0).toFixed(2)}</li>
+                            <li><strong>Descontos por Faltas:</strong> - R$ ${(absenceDeductions || 0).toFixed(2)}</li>
+                            <li class="pt-2 border-t mt-2 font-bold"><strong>Salário final:</strong> R$ ${(finalSalary || 0).toFixed(2)}</li>
                         </ul>
                     </div>
                 </div>
@@ -731,6 +696,7 @@ function generateReportHTML(user, records, startDate, endDate) {
     `;
 }
 
+
 function calculateMinuteValue(salary, totalDailyMinutes) {
     if (!salary || salary <= 0 || !totalDailyMinutes || totalDailyMinutes <= 0) return 0;
     const workDaysPerMonth = 22;
@@ -738,4 +704,3 @@ function calculateMinuteValue(salary, totalDailyMinutes) {
     const minuteValue = salary / totalMonthlyMinutes;
     return minuteValue;
 }
-

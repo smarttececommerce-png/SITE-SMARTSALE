@@ -11,14 +11,13 @@ export function checkAuth(callback) {
             const userDocSnap = await getDoc(userDocRef);
             if (userDocSnap.exists()) {
                 const userData = userDocSnap.data();
-                callback(userData); // Passa os dados do usuário para a função de callback
+                const finalUserData = { ...userData, uid: user.uid };
+                callback(finalUserData); 
             } else {
-                // Se não encontrar os dados no Firestore, desloga o usuário
                 console.error("Dados do usuário não encontrados no Firestore. Deslogando.");
                 logout();
             }
         } else {
-            // Se não houver usuário logado, redireciona para a página de login do hub
             window.location.href = '../index.html';
         }
     });
@@ -33,7 +32,7 @@ export function logout() {
     });
 }
 
-// Lógica de troca de tema
+// Lógica de troca de tema (AJUSTADA PARA PADRÃO ESCURO)
 export function setupThemeToggle() {
     const themeToggleBtn = document.getElementById('theme-toggle');
     if (!themeToggleBtn) return;
@@ -41,19 +40,21 @@ export function setupThemeToggle() {
     const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
     const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
 
-    // Change the icons inside the button based on previous settings
-    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        themeToggleLightIcon.classList.remove('hidden');
-    } else {
+    // CORREÇÃO: Define o estado inicial. Se o tema for 'light', mostra o ícone escuro.
+    // Em todos os outros casos (tema 'dark' ou não definido), mostra o ícone claro.
+    if (localStorage.getItem('color-theme') === 'light') {
         themeToggleDarkIcon.classList.remove('hidden');
+    } else {
+        document.documentElement.classList.add('dark'); // Garante que a classe dark seja aplicada
+        themeToggleLightIcon.classList.remove('hidden');
     }
 
     themeToggleBtn.addEventListener('click', function () {
-        // toggle icons inside button
+        // alterna os ícones
         themeToggleDarkIcon.classList.toggle('hidden');
         themeToggleLightIcon.classList.toggle('hidden');
 
-        // if set via local storage previously
+        // se o tema já foi definido antes
         if (localStorage.getItem('color-theme')) {
             if (localStorage.getItem('color-theme') === 'light') {
                 document.documentElement.classList.add('dark');
@@ -62,9 +63,9 @@ export function setupThemeToggle() {
                 document.documentElement.classList.remove('dark');
                 localStorage.setItem('color-theme', 'light');
             }
-
-            // if NOT set via local storage previously
+        // se o tema NÃO foi definido antes
         } else {
+            // Inicia trocando para o modo claro, já que o padrão é escuro
             if (document.documentElement.classList.contains('dark')) {
                 document.documentElement.classList.remove('dark');
                 localStorage.setItem('color-theme', 'light');
@@ -92,4 +93,3 @@ export function initializeDayjs() {
         console.error('Erro na configuração do Day.js:', error);
     }
 }
-

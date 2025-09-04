@@ -1,0 +1,207 @@
+/* ==========================================================================
+   Configuração Base e Variáveis de Cor (Tema Escuro Padrão)
+   ========================================================================== */
+
+:root {
+    --color-bg: #111827; /* Fundo principal (cinza-azulado escuro) */
+    --color-bg-secondary: #1f2937; /* Fundo de cards e sidebar (cinza mais claro) */
+    --color-border: #374151; /* Cor das bordas */
+    --color-text: #d1d5db; /* Cor do texto principal (cinza claro) */
+    --color-text-heading: #ffffff; /* Cor dos títulos (branco) */
+    --color-text-muted: #9ca3af; /* Cor de texto secundário (cinza médio) */
+    
+    --color-primary: #3b82f6; /* Azul primário */
+    --color-primary-hover: #2563eb;
+    --color-danger: #ef4444; /* Vermelho para perigo/exclusão */
+    --color-danger-hover: #dc2626;
+    --color-success: #22c55e; /* Verde para sucesso */
+    --color-warning: #f59e0b; /* Amarelo para avisos */
+
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --border-radius: 0.75rem; /* 12px */
+}
+
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   Componentes Reutilizáveis
+   ========================================================================== */
+
+.card {
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--border-radius);
+    padding: 1.5rem; /* 24px */
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border);
+}
+
+.card-title {
+    font-size: 1.125rem; /* 18px */
+    font-weight: 600;
+    color: var(--color-text-heading);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.25rem; /* 10px 20px */
+    border-radius: 0.5rem; /* 8px */
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+}
+.btn-primary:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.btn-secondary {
+    background-color: #374151;
+    color: white;
+}
+.btn-secondary:hover {
+    background-color: #4b5563;
+}
+
+.btn-danger {
+    background-color: var(--color-danger);
+    color: white;
+}
+.btn-danger:hover {
+    background-color: var(--color-danger-hover);
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.input-style {
+    width: 100%;
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-style:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+/* ==========================================================================
+   Layout Principal (Sidebar e Conteúdo)
+   ========================================================================== */
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.nav-link:hover {
+    background-color: var(--color-bg);
+    color: var(--color-text-heading);
+}
+
+.nav-link.active {
+    background-color: var(--color-primary);
+    color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.nav-link i {
+    width: 20px;
+    margin-right: 0.75rem;
+    text-align: center;
+}
+
+/* ==========================================================================
+   Estilos Específicos do Painel de Admin
+   ========================================================================== */
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+}
+
+.user-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.user-item:hover {
+    background-color: var(--color-bg);
+}
+
+/* Calendário */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.cal-cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 50px;
+    background-color: var(--color-bg);
+    border-radius: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.cal-cell:hover {
+    background-color: #374151;
+}
+
+.cal-cell.today .cal-day {
+    background-color: var(--color-primary);
+    color: white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

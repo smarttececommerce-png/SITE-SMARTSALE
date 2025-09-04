@@ -1,7 +1,7 @@
 // js/main.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { firebaseConfig } from './config.js';
 import { initSmartSale } from './smartsale-module.js';
 
@@ -33,8 +33,9 @@ onAuthStateChanged(auth, async (user) => {
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
-            currentUser = userDocSnap.data();
-            document.getElementById('hub-welcome-name').textContent = currentUser.nomeFantasia;
+            // CORREÇÃO: Garante que o UID do usuário autenticado esteja sempre presente no objeto currentUser.
+            currentUser = { ...userDocSnap.data(), uid: user.uid };
+            document.getElementById('hub-user-name').textContent = currentUser.nomeFantasia;
             showScreen('hub');
         } else {
             console.error("User data not found in Firestore. Logging out.");
@@ -72,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('hub-logout-btn').addEventListener('click', () => signOut(auth));
 
     // Ações dos Cards do Hub
-    document.getElementById('smartsale-card').addEventListener('click', () => {
+    document.getElementById('hub-goto-smartsale').addEventListener('click', () => {
         if (currentUser) {
             showScreen('smartsale');
             // Passa a instância 'db' diretamente para o módulo
@@ -82,11 +83,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('olx-card').addEventListener('click', () => {
+    document.getElementById('hub-goto-olx').addEventListener('click', () => {
         window.location.href = 'olx-dashboard.html';
     });
 
-    document.getElementById('ponto-card').addEventListener('click', () => {
+    document.getElementById('hub-goto-ponto').addEventListener('click', () => {
         window.location.href = 'ponto/dashboard.html';
     });
 });
@@ -106,9 +107,6 @@ async function handleLogin() {
         return;
     }
     
-    // Como não temos um campo de email no login, precisamos de encontrar o email do utilizador
-    // Esta abordagem não é ideal para produção, mas funciona para o seu caso de uso.
-    // O ideal seria fazer o login diretamente com o email.
     const userQuery = query(collection(db, "users"), where("nomeFantasia_lower", "==", username.toLowerCase()));
     const querySnapshot = await getDocs(userQuery);
 
@@ -171,4 +169,3 @@ async function handleSignup() {
         errorEl.classList.remove('hidden');
     }
 }
-
