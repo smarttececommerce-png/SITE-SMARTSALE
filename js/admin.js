@@ -1,14 +1,17 @@
-// js/admin.js (Script Principal do Painel de Administração - CORRIGIDO)
+// js/admin.js (Script Principal do Painel de Administração - VERSÃO FINAL CORRIGIDA)
 
 import { auth, db } from './config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { collection, onSnapshot, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { collection, onSnapshot, getDoc, doc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Importa os inicializadores de cada módulo de administração
 import { initPontoAdmin } from './admin/ponto.js';
-import { initSmartsaleAdmin } from './admin/smartsale.js';
+import { initRotinaMetasAdmin } from './admin/rotina-e-metas.js';
 import { initOlxAdmin } from './admin/olx.js';
 import { initUsuariosAdmin } from './admin/usuarios.js';
+import { initFinanceiroAdmin } from './admin/financeiro.js';
+import { initDailyTasksAdmin } from './admin/daily-tasks.js';
+import { initGoalsAdmin } from './admin/goals.js';
 
 // Armazena dados globais em tempo real para serem compartilhados entre os módulos
 let allUsers = [];
@@ -16,10 +19,11 @@ let allPontoRecords = [];
 let allTasks = [];
 let allOlxAds = [];
 let allAbsences = [];
+let pontoConfig = {};
+let allSalesGoals = [];
 
 /**
  * Fornece uma cópia segura dos dados globais para os módulos.
- * Isso evita que um módulo modifique acidentalentalmente os dados de outro.
  */
 const getGlobalData = () => ({
     users: JSON.parse(JSON.stringify(allUsers)),
@@ -27,7 +31,25 @@ const getGlobalData = () => ({
     tasks: JSON.parse(JSON.stringify(allTasks)),
     olxAds: JSON.parse(JSON.stringify(allOlxAds)),
     absences: JSON.parse(JSON.stringify(allAbsences)),
+    pontoConfig: JSON.parse(JSON.stringify(pontoConfig)),
+    salesGoals: JSON.parse(JSON.stringify(allSalesGoals))
 });
+
+function initializeDayjs() {
+    try {
+        const plugins = ['customParseFormat', 'utc', 'timezone', 'isSameOrAfter', 'isSameOrBefore'];
+        plugins.forEach(p => {
+            if (window[`dayjs_plugin_${p}`]) {
+                dayjs.extend(window[`dayjs_plugin_${p}`]);
+            }
+        });
+        dayjs.locale('pt-br');
+        dayjs.tz.setDefault("America/Sao_Paulo");
+        console.log("Day.js inicializado com sucesso no painel de admin.");
+    } catch (error) {
+        console.error('Erro na configuração do Day.js no painel de admin:', error);
+    }
+}
 
 /**
  * Função principal que inicializa todo o painel.
@@ -35,15 +57,16 @@ const getGlobalData = () => ({
 function initializeAdminPanel() {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // Verifica se o usuário logado é um administrador
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 console.log("Admin autenticado:", user.email);
+                
+                initializeDayjs(); 
+
                 loadAllRealtimeData();
                 setupEventListeners();
                 navigateToSection(window.location.hash || '#geral');
             } else {
-                // Se não for admin, desloga e redireciona
                 console.warn("Usuário não é admin. Acesso negado.");
                 signOut(auth);
                 window.location.href = 'index.html';
@@ -59,49 +82,61 @@ function initializeAdminPanel() {
  * Configura listeners do Firestore para carregar e manter os dados atualizados.
  */
 function loadAllRealtimeData() {
-    // Listener para usuários
     onSnapshot(collection(db, "users"), snapshot => {
         allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         updateDashboardView();
         window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { dataType: 'users' } }));
     });
 
-    // Listener para registros de ponto
     onSnapshot(collection(db, "registrosPonto"), snapshot => {
         allPontoRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { dataType: 'ponto' } }));
     });
 
-    // Listener para tarefas do Smart Sale
-    onSnapshot(collection(db, "tasks"), snapshot => {
+    onSnapshot(collection(db, "kanbanCards"), snapshot => {
         allTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         updateDashboardView();
+        window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { dataType: 'tasks' } }));
     });
     
-    // Listener para anúncios da OLX
     onSnapshot(collection(db, "ads"), snapshot => {
         allOlxAds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { dataType: 'olx' } }));
     });
 
-    // Listener para ausências gerais
     onSnapshot(collection(db, "generalAbsences"), snapshot => {
         allAbsences = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { dataType: 'absences' } }));
     });
     
-    // Após configurar os listeners, inicializa os módulos que dependem desses dados
+    onSnapshot(doc(db, "configuracaoPonto", "default"), (docSnap) => {
+        if (docSnap.exists()) {
+            pontoConfig = docSnap.data();
+        } else {
+            pontoConfig = { toleranciaMinutos: 5, punctualityBonusValue: 50 };
+        }
+        window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { dataType: 'config' } }));
+    });
+
+    onSnapshot(collection(db, "salesGoals"), (snapshot) => {
+        allSalesGoals = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { dataType: 'goals' } }));
+    });
+
+    // Inicializa todos os módulos
     initPontoAdmin(db, getGlobalData);
-    initSmartsaleAdmin(db, getGlobalData);
+    initRotinaMetasAdmin(db, getGlobalData);
     initOlxAdmin(db, getGlobalData);
     initUsuariosAdmin(db, getGlobalData);
+    initFinanceiroAdmin(db, getGlobalData);
+    initDailyTasksAdmin(db, getGlobalData);
+    initGoalsAdmin(db, getGlobalData);
 }
 
 /**
  * Atualiza os cartões de resumo na seção "Visão Geral".
  */
-function updateDashboardView() {
-    // Atualiza lista de funcionários trabalhando
+async function updateDashboardView() {
     const workingNowList = document.getElementById('workingNowList');
     const workingNowCount = document.getElementById('workingNowCount');
     if (workingNowList && workingNowCount) {
@@ -117,19 +152,19 @@ function updateDashboardView() {
             : '<p class="text-gray-400 text-sm">Nenhum funcionário registrou ponto como "trabalhando".</p>';
     }
 
-    // Atualiza contagem de tarefas pendentes
     const pendingTasksCount = document.getElementById('pendingTasksCount');
     if (pendingTasksCount) {
-        const pendingTasks = allTasks.filter(t => t.status !== 'concluido');
+        const pendingTasks = allTasks.filter(t => t.status !== 'feito');
         pendingTasksCount.textContent = pendingTasks.length;
     }
 
-    // Atualiza contagem de tarefas concluídas hoje
     const completedTasksTodayCount = document.getElementById('completedTasksTodayCount');
     if (completedTasksTodayCount) {
         const today = dayjs().format('YYYY-MM-DD');
-        const completedToday = allTasks.filter(t => t.status === 'concluido' && t.dataConclusao?.startsWith(today));
-        completedTasksTodayCount.textContent = completedToday.length;
+        const completionsQuery = query(collection(db, "dailyTaskCompletions"), where("completionDate", "==", today));
+        const completionsSnapshot = await getDocs(completionsQuery);
+        const dailyCompleted = completionsSnapshot.docs.length;
+        completedTasksTodayCount.textContent = dailyCompleted;
     }
 }
 
@@ -153,7 +188,6 @@ function setupEventListeners() {
 
 /**
  * Gerencia a exibição das seções do painel.
- * @param {string} sectionHash - O ID da seção a ser mostrada (ex: '#ponto').
  */
 function navigateToSection(sectionHash) {
     const cleanSectionId = sectionHash.startsWith('#') ? sectionHash.substring(1) : sectionHash;
@@ -166,7 +200,7 @@ function navigateToSection(sectionHash) {
     if (activeSection) {
         activeSection.style.display = 'block';
     } else {
-        document.getElementById('geral').style.display = 'block'; // Seção padrão
+        document.getElementById('geral').style.display = 'block';
     }
 
     document.querySelectorAll('.nav-link').forEach(link => {
@@ -181,3 +215,7 @@ function navigateToSection(sectionHash) {
 
 // Inicia o painel de administração assim que o script é carregado
 initializeAdminPanel();
+
+// --- Mantido para facilitar o debug pela consola ---
+window.db = db;
+window.getGlobalData = getGlobalData;

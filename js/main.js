@@ -69,10 +69,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('signup-btn').addEventListener('click', handleSignup);
     document.getElementById('hub-logout-btn').addEventListener('click', () => signOut(auth));
 
-    // Ações dos Cards do Hub
-    document.getElementById('hub-goto-smartsale').addEventListener('click', () => {
-        // MODIFICADO: Redireciona para a nova página dedicada
-        window.location.href = 'rotina-e-metas.html';
+    // Ações dos Cards do Hub ATUALIZADAS
+    document.getElementById('hub-goto-rotina').addEventListener('click', () => {
+        window.location.href = 'rotina-diaria.html';
+    });
+    
+    document.getElementById('hub-goto-metas').addEventListener('click', () => {
+        window.location.href = 'metas-e-produtos.html';
     });
 
     document.getElementById('hub-goto-olx').addEventListener('click', () => {

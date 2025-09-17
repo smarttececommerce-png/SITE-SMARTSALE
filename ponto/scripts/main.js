@@ -1,7 +1,7 @@
 // ponto/scripts/main.js
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { auth, db } from './firebase-config.js';
+import { auth, db } from '../../js/config.js';
 
 // Função para verificar se o usuário está logado e obter seus dados.
 export function checkAuth(callback) {

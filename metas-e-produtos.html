@@ -3,62 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rotina e Metas - Smart Sale</title>
+    <title>Metas e Produtos - Smart Sale</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="rotina-e-metas.css">
     <style>
-        /* Estilo para a checkbox personalizada */
-        .task-checkbox-label {
-            display: flex;
-            align-items: center;
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            font-weight: 600;
+            color: #9ca3af;
             cursor: pointer;
-            padding: 0.75rem;
-            background-color: #374151;
-            border-radius: 0.5rem;
-            transition: background-color 0.2s;
-        }
-        .task-checkbox-label:hover {
-            background-color: #4b5563;
-        }
-        .task-checkbox-input {
-            display: none;
-        }
-        .task-checkbox-input:checked + .task-checkbox-label {
-            background-color: #1f2937;
-            text-decoration: line-through;
-            color: #6b7280;
-        }
-        .task-checkbox-input:checked + .task-checkbox-label .checkbox-icon {
-            background-color: #16a34a;
-            border-color: #16a34a;
-        }
-        .task-checkbox-input:checked + .task-checkbox-label .checkbox-icon svg {
-            display: block;
-        }
-        .checkbox-icon {
-            width: 1.5rem;
-            height: 1.5rem;
-            border: 2px solid #6b7280;
-            border-radius: 0.375rem;
-            margin-right: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             transition: all 0.2s;
         }
-        .checkbox-icon svg {
-            display: none;
-            color: white;
+        .tab-btn:hover {
+            color: #e5e7eb;
+        }
+        .tab-btn.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
         }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-300 font-sans">
 
-    <div id="rotina-metas-app" class="p-4 sm:p-6 lg:p-8">
+    <div id="metas-app" class="p-4 sm:p-6 lg:p-8">
         <header class="flex flex-wrap justify-between items-center mb-6 gap-4">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-bold text-white">Rotina e Metas</h1>
+                <h1 class="text-2xl sm:text-3xl font-bold text-white">Metas e Produtos</h1>
                 <p id="header-user-name" class="text-gray-400">Bem-vindo!</p>
             </div>
             <a href="index.html" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md transition duration-300">
@@ -66,14 +38,8 @@
             </a>
         </header>
 
-        <section id="daily-tasks-section" class="mb-8">
-            <h2 class="text-xl font-semibold text-white mb-4">Tarefas do Dia</h2>
-            <div id="daily-tasks-container" class="space-y-3">
-            </div>
-        </section>
-
-
         <section id="metas-kpis" class="mb-8">
+            <h2 class="text-xl font-semibold text-white mb-4">Minhas Metas</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="kpi-card">
                     <h3 class="kpi-title">Meta Mensal</h3>
@@ -117,14 +83,7 @@
             </div>
         </section>
 
-        <main id="kanban-board" class="kanban-container">
-            <div class="kanban-column" data-column-id="afazer"><h2 class="column-title"><i class="fas fa-list-check mr-2 text-yellow-400"></i>A Fazer</h2><div class="cards-container" data-column-list-id="afazer"></div><div class="add-card-form hidden"><textarea placeholder="Digite o título da tarefa..." class="add-card-textarea"></textarea><div class="add-card-actions"><button class="confirm-add-btn">Adicionar</button><button class="cancel-add-btn">Cancelar</button></div></div><button class="add-card-btn">+ Adicionar Tarefa</button></div>
-            <div class="kanban-column" data-column-id="progresso"><h2 class="column-title"><i class="fas fa-person-running mr-2 text-orange-400"></i>Em Progresso</h2><div class="cards-container" data-column-list-id="progresso"></div><div class="add-card-form hidden"><textarea placeholder="Digite o título da tarefa..." class="add-card-textarea"></textarea><div class="add-card-actions"><button class="confirm-add-btn">Adicionar</button><button class="cancel-add-btn">Cancelar</button></div></div><button class="add-card-btn">+ Adicionar Tarefa</button></div>
-            <div class="kanban-column" data-column-id="feito"><h2 class="column-title"><i class="fas fa-flag-checkered mr-2 text-green-400"></i>Feito</h2><div class="cards-container" data-column-list-id="feito"></div><div class="add-card-form hidden"><textarea placeholder="Digite o título da tarefa..." class="add-card-textarea"></textarea><div class="add-card-actions"><button class="confirm-add-btn">Adicionar</button><button class="cancel-add-btn">Cancelar</button></div></div><button class="add-card-btn">+ Adicionar Tarefa</button></div>
-        </main>
     </div>
-
-    <div id="card-modal" class="modal-overlay hidden"><div class="modal-content"><button id="modal-close-btn" class="modal-close-btn">&times;</button><input id="modal-title-input" type="text" class="modal-title-input" placeholder="Título da Tarefa"><textarea id="modal-description-textarea" class="modal-description-textarea" placeholder="Adicione uma descrição mais detalhada..."></textarea><button id="modal-save-btn" class="modal-save-btn">Salvar Alterações</button></div></div>
 
     <div id="add-product-modal" class="modal-overlay hidden">
         <div class="modal-content">
@@ -150,10 +109,9 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
     
     <script type="module" src="js/config.js"></script>
-    <script type="module" src="js/rotina-e-metas.js"></script>
+    <script type="module" src="js/metas-e-produtos.js"></script>
 </body>
 </html>

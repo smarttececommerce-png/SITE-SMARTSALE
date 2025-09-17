@@ -25,16 +25,19 @@ export function initPontoAdmin(firestoreInstance, globalDataGetter) {
     setupPontoEventListeners();
     updatePontoUI();
 
-    // Ouve o evento de atualização de dados para redesenhar a UI
     window.addEventListener('dataUpdated', (e) => {
-        if (e.detail.dataType === 'ponto' || e.detail.dataType === 'users' || e.detail.dataType === 'absences') {
+        const dataType = e.detail.dataType;
+        if (['ponto', 'users', 'absences'].includes(dataType)) {
             updatePontoUI();
+        }
+        if (dataType === 'config') {
+            displayPontoSettings();
         }
     });
 }
 
 function setupPontoEventListeners() {
-    document.getElementById('generateReportBtn')?.addEventListener('click', () => alert("Função de relatório ainda não implementada."));
+    document.getElementById('generateReportBtn')?.addEventListener('click', generateMonthlyReport);
     document.getElementById('calendar-prev-month')?.addEventListener('click', () => changeMonth(-1));
     document.getElementById('calendar-next-month')?.addEventListener('click', () => changeMonth(1));
     document.getElementById('calendar-user-select')?.addEventListener('change', renderCalendar);
@@ -43,10 +46,8 @@ function setupPontoEventListeners() {
     document.getElementById('createAbsenceForm')?.addEventListener('submit', handleCreateAbsence);
     
     document.getElementById('absenceList')?.addEventListener('click', (e) => {
-        const button = e.target.closest('button');
-        if (button && button.dataset.action === 'delete-absence') {
-            confirmDeleteAbsence(button.dataset.id);
-        }
+        const button = e.target.closest('button[data-action="delete-absence"]');
+        if (button) confirmDeleteAbsence(button.dataset.id);
     });
 
     document.getElementById('confirmDelete')?.addEventListener('click', () => {
@@ -56,9 +57,17 @@ function setupPontoEventListeners() {
     document.getElementById('cancelDelete')?.addEventListener('click', () => {
         document.getElementById('confirmDeleteModal').classList.add('hidden');
     });
+
+    // Listeners para o novo modal de edição de registro
+    document.getElementById('editRecordForm')?.addEventListener('submit', handleSaveRecord);
+    document.getElementById('cancelEditRecord')?.addEventListener('click', () => {
+        document.getElementById('editRecordModal').classList.add('hidden');
+    });
+    
+    // Listener de eventos para os botões dinâmicos no detalhe do calendário
+    document.getElementById('calendar-record-details')?.addEventListener('click', handleCalendarDetailAction);
 }
 
-// Função central que chama todas as atualizações de UI
 function updatePontoUI() {
     populateUserSelects();
     updatePendingJustifications();
@@ -67,19 +76,10 @@ function updatePontoUI() {
     displayAbsences();
 }
 
-/**
- * Popula os selects de usuário na interface.
- */
 function populateUserSelects() {
     const userSelectors = document.querySelectorAll('#reportUser, #calendar-user-select, #absenceAppliesTo');
-    
-    // **CORREÇÃO APLICADA AQUI**
-    // Extrai a lista de usuários do objeto retornado por getGlobalData
     const { users } = getGlobalData();
-    if (!users || !Array.isArray(users)) {
-        console.error("A lista de usuários não é um array válido.");
-        return;
-    }
+    if (!users || !Array.isArray(users)) return;
 
     userSelectors.forEach(select => {
         if (!select) return;
@@ -89,27 +89,22 @@ function populateUserSelects() {
         if (firstOption && (firstOption.value === 'todos' || firstOption.value === '')) {
             select.appendChild(firstOption);
         }
-
-        users.forEach(user => { // Agora 'users' é garantidamente um array
-            if (user.role !== 'admin') {
-                const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = user.nomeFantasia;
-                select.appendChild(option);
-            }
+        users.filter(u => u.role !== 'admin').forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.nomeFantasia;
+            select.appendChild(option);
         });
         select.value = oldValue;
     });
 }
 
-
 function displayPontoSettings() {
-    // Implementação futura ou buscar de um objeto de config
-    const config = { toleranciaMinutos: 5, punctualityBonusValue: 50 }; // Exemplo
+    const { pontoConfig } = getGlobalData();
     const toleranciaEl = document.getElementById('tolerancia');
     const bonusEl = document.getElementById('punctualityBonusValue');
-    if (toleranciaEl) toleranciaEl.value = config.toleranciaMinutos;
-    if (bonusEl) bonusEl.value = config.punctualityBonusValue;
+    if (toleranciaEl) toleranciaEl.value = pontoConfig.toleranciaMinutos || 5;
+    if (bonusEl) bonusEl.value = pontoConfig.punctualityBonusValue || 50;
 }
 
 async function savePontoSettings() {
@@ -143,7 +138,7 @@ function displayAbsences() {
             <span>${new Date(absence.date + 'T03:00:00Z').toLocaleDateString('pt-BR')} - ${absence.description}</span>
             <button data-action="delete-absence" data-id="${absence.id}" class="text-red-400 hover:text-red-500 font-bold text-lg">&times;</button>
         </li>
-    `).join('') : '';
+    `).join('') : '<p class="text-gray-400 italic text-sm">Nenhuma ausência geral cadastrada.</p>';
 }
 
 async function handleCreateAbsence(e) {
@@ -218,9 +213,15 @@ async function handleJustificationAction(e) {
         
         let updateData;
         if (action === 'approve') {
-            updateData = { aprovadoPorAdm: true };
-        } else { // reject
-            updateData = { aprovadoPorAdm: null, justificativa: `(Rejeitada) ${recordSnap.data().justificativa}` };
+            const newStatus = recordSnap.data().status === 'falta_justificada' ? 'falta_abonada' : recordSnap.data().status;
+            updateData = { aprovadoPorAdm: true, status: newStatus };
+        } else {
+            const newStatus = recordSnap.data().status === 'falta_justificada' ? 'falta_rejeitada' : recordSnap.data().status;
+            updateData = { 
+                aprovadoPorAdm: false, 
+                status: newStatus,
+                justificativa: `(Rejeitada) ${recordSnap.data().justificativa}` 
+            };
         }
         await updateDoc(docRef, updateData);
     } catch (error) {
@@ -266,7 +267,9 @@ function renderCalendar() {
             cell.classList.add('today');
         }
         if (selectedUserId) {
-            const record = pontoRecords.find(r => r.employeeId === selectedUserId && new Date((r.data.seconds || 0) * 1000).toDateString() === date.toDateString());
+            const dateString = dayjs(date).format('YYYY-MM-DD');
+            const recordId = `${selectedUserId}_${dateString}`;
+            const record = pontoRecords.find(r => r.id === recordId);
             if (record) {
                 const statusDot = document.createElement('div');
                 statusDot.className = 'absolute bottom-1.5 h-1.5 w-1.5 rounded-full';
@@ -282,34 +285,271 @@ function renderCalendar() {
     }
 }
 
-async function showRecordDetails(date) {
+function isWorkDay(date, user) {
+    if (!user || !user.diasTrabalho) return false;
+    const dayOfWeek = dayjs(date).day();
+    return user.diasTrabalho.includes(dayOfWeek);
+}
+
+function showRecordDetails(date) {
     const detailsArea = document.getElementById('calendar-record-details');
     const selectedUserId = document.getElementById('calendar-user-select').value;
+    const { users, pontoRecords } = getGlobalData();
+
     if (!selectedUserId) {
         detailsArea.innerHTML = `<p class="text-center text-yellow-400">Selecione um funcionário.</p>`;
         detailsArea.classList.remove('hidden');
         return;
     }
+
     detailsArea.classList.remove('hidden');
     detailsArea.innerHTML = `<p class="text-center text-gray-400">Carregando...</p>`;
-
-    const { pontoRecords } = getGlobalData();
-    const record = pontoRecords.find(r => r.employeeId === selectedUserId && new Date((r.data.seconds || 0) * 1000).toDateString() === date.toDateString());
+    
+    const user = users.find(u => u.id === selectedUserId);
+    const dateString = dayjs(date).format('YYYY-MM-DD');
+    const recordId = `${selectedUserId}_${dateString}`;
+    const record = pontoRecords.find(r => r.id === recordId);
+    
+    let html = `<h4 class="font-bold border-b border-gray-700 pb-2 mb-2">Detalhes do Dia: ${dayjs(date).format('DD/MM/YYYY')}</h4>`;
 
     if (record) {
-        detailsArea.innerHTML = `
-            <h4 class="font-bold">Detalhes do Dia: ${date.toLocaleDateString('pt-BR')}</h4>
-            <div class="text-sm mt-2 space-y-1">
-                <p><strong>Status:</strong> ${record.status || 'N/A'}</p>
-                <p><strong>Entrada:</strong> ${record.entrada ? new Date(record.entrada).toLocaleTimeString('pt-BR') : '--:--'}</p>
-                <p><strong>Saída:</strong> ${record.saida ? new Date(record.saida).toLocaleTimeString('pt-BR') : '--:--'}</p>
+        html += `
+            <div class="text-sm space-y-1">
+                <p><strong>Status:</strong> <span class="capitalize">${(record.status || 'N/A').replace(/_/g, ' ')}</span></p>
+                <p><strong>Entrada:</strong> ${record.entrada ? dayjs(record.entrada).format('HH:mm') : '--:--'}</p>
+                <p><strong>Saída:</strong> ${record.saida ? dayjs(record.saida).format('HH:mm') : '--:--'}</p>
                 <p><strong>Justificativa:</strong> ${record.justificativa || 'Nenhuma'}</p>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button data-action="edit-record" data-record-id="${record.id}" class="btn btn-sm btn-secondary flex-1">Editar</button>
+                <button data-action="delete-record" data-record-id="${record.id}" class="btn btn-sm btn-danger flex-1">Apagar</button>
             </div>
         `;
     } else {
-        detailsArea.innerHTML = `
-            <h4 class="font-bold">Detalhes do Dia: ${date.toLocaleDateString('pt-BR')}</h4>
-            <p class="text-center text-gray-400 mt-2">Nenhum registro encontrado.</p>
-        `;
+        if (isWorkDay(date, user)) {
+             html += `
+                <p class="text-center text-yellow-400 mt-2">Ausência não justificada.</p>
+                <div class="flex gap-2 mt-4">
+                    <button data-action="create-record" data-date="${dateString}" data-user-id="${selectedUserId}" class="btn btn-sm btn-primary w-full">Criar Registro / Abonar Falta</button>
+                </div>
+            `;
+        } else {
+            html += `<p class="text-center text-gray-400 mt-2">Dia de folga.</p>`;
+        }
     }
+    detailsArea.innerHTML = html;
+}
+
+function handleCalendarDetailAction(e) {
+    const button = e.target.closest('button');
+    if (!button) return;
+
+    const { action, recordId, date, userId } = button.dataset;
+    const { pontoRecords } = getGlobalData();
+
+    if (action === 'edit-record') {
+        const record = pontoRecords.find(r => r.id === recordId);
+        openRecordModal({ record });
+    } else if (action === 'create-record') {
+        openRecordModal({ date, userId });
+    } else if (action === 'delete-record') {
+        showConfirmDeleteModal(`Tem certeza que deseja apagar este registro? Esta ação não pode ser desfeita.`, async () => {
+            await deleteDoc(doc(db, "registrosPonto", recordId));
+        });
+    }
+}
+
+function openRecordModal({ record, date, userId }) {
+    const modal = document.getElementById('editRecordModal');
+    const form = document.getElementById('editRecordForm');
+    form.reset();
+
+    if (record) {
+        document.getElementById('editRecordModalTitle').textContent = 'Editar Registro';
+        form.querySelector('#editRecordId').value = record.id;
+        form.querySelector('#editRecordEntrada').value = record.entrada ? dayjs(record.entrada).format('HH:mm') : '';
+        form.querySelector('#editRecordSaida').value = record.saida ? dayjs(record.saida).format('HH:mm') : '';
+        form.querySelector('#editRecordStatus').value = record.status || 'completo';
+        form.querySelector('#editRecordJustificativa').value = record.justificativa || '';
+    } else {
+        document.getElementById('editRecordModalTitle').textContent = 'Criar Novo Registro';
+        form.querySelector('#editRecordDate').value = date;
+        form.querySelector('#editRecordUserId').value = userId;
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+async function handleSaveRecord(e) {
+    e.preventDefault();
+    const form = e.target;
+    const recordId = form.querySelector('#editRecordId').value;
+    const dateStr = form.querySelector('#editRecordDate').value;
+    const userId = form.querySelector('#editRecordUserId').value;
+    
+    const entradaTime = form.querySelector('#editRecordEntrada').value;
+    const saidaTime = form.querySelector('#editRecordSaida').value;
+
+    const recordDate = recordId ? recordId.split('_')[1] : dateStr;
+
+    const recordData = {
+        status: form.querySelector('#editRecordStatus').value,
+        justificativa: form.querySelector('#editRecordJustificativa').value.trim(),
+        entrada: entradaTime ? dayjs(`${recordDate}T${entradaTime}`).toISOString() : null,
+        saida: saidaTime ? dayjs(`${recordDate}T${saidaTime}`).toISOString() : null,
+    };
+
+    let docId, dataToSave;
+    if (recordId) {
+        docId = recordId;
+        dataToSave = recordData;
+    } else {
+        docId = `${userId}_${dateStr}`;
+        dataToSave = {
+            ...recordData,
+            id: docId,
+            employeeId: userId,
+            data: dayjs(dateStr).toDate(),
+            minutosAtrasado: 0,
+            horasExtras: 0,
+        };
+    }
+    
+    try {
+        await setDoc(doc(db, "registrosPonto", docId), dataToSave, { merge: true });
+        document.getElementById('editRecordModal').classList.add('hidden');
+    } catch (error) {
+        console.error("Erro ao salvar registro:", error);
+        alert("Ocorreu um erro ao salvar o registro.");
+    }
+}
+
+async function generateMonthlyReport() {
+    const userId = document.getElementById('reportUser').value;
+    const month = document.getElementById('reportMonth').value;
+    if (!userId || !month) {
+        alert('Por favor, selecione um funcionário e um mês para gerar o relatório.');
+        return;
+    }
+
+    const { users, pontoRecords, absences, pontoConfig } = getGlobalData();
+    const user = users.find(u => u.id === userId);
+    if (!user) {
+        alert('Usuário não encontrado.');
+        return;
+    }
+
+    const [year, monthNum] = month.split('-');
+    const startDate = dayjs(`${year}-${monthNum}-01`).startOf('month');
+    const endDate = startDate.endOf('month');
+
+    const userRecords = pontoRecords.filter(record => {
+        if (!record.data || !record.data.seconds) return false;
+        const recordDate = dayjs(record.data.seconds * 1000);
+        return record.employeeId === userId &&
+               recordDate.isAfter(startDate.subtract(1, 'day')) &&
+               recordDate.isBefore(endDate.add(1, 'day'));
+    });
+
+    try {
+        const reportHTML = generateReportHTML(user, userRecords, startDate.toDate(), endDate.toDate(), absences, pontoConfig);
+        const reportWindow = window.open('', '_blank');
+        reportWindow.document.write(reportHTML);
+        reportWindow.document.close();
+    } catch (error) {
+        console.error('Erro ao gerar relatório:', error);
+        alert('Ocorreu um erro ao tentar gerar o relatório.');
+    }
+}
+
+function generateReportHTML(user, records, startDate, endDate, allAbsences, pontoConfig) {
+    let latenessDeductions = 0;
+    let latenessCount = 0;
+    let totalOvertimeMinutes = 0;
+    let workDaysInMonth = 0;
+    let presentDays = 0;
+    let dayjs = window.dayjs;
+
+    let currentDay = dayjs(startDate);
+    while (currentDay.isSameOrBefore(endDate)) {
+        if (isWorkDay(currentDay.toDate(), user) && !allAbsences.some(abs => abs.date === currentDay.format('YYYY-MM-DD'))) {
+            workDaysInMonth++;
+        }
+        currentDay = currentDay.add(1, 'day');
+    }
+
+    let totalDailyMinutes = 0;
+    if (user.horarioEntrada1 && user.horarioSaida1) {
+        totalDailyMinutes += dayjs(user.horarioSaida1, 'HH:mm').diff(dayjs(user.horarioEntrada1, 'HH:mm'), 'minute');
+    }
+    const workDays = workDaysInMonth || 22; // Evita divisão por zero
+    const minuteValue = (user.salarioFixo || 0) / (workDays * totalDailyMinutes);
+
+    records.forEach(record => {
+        if (record.status && !record.status.startsWith('falta')) {
+            presentDays++;
+            const toleranciaMinutos = pontoConfig.toleranciaMinutos || 5;
+            if (record.minutosAtrasado > toleranciaMinutos) {
+                latenessCount++;
+                // Recalcula o desconto com base nos minutos de atraso e valor do minuto atual
+                latenessDeductions += (record.minutosAtrasado * minuteValue);
+            }
+            totalOvertimeMinutes += record.horasExtras || 0;
+        }
+    });
+
+    const absenceDays = workDaysInMonth - presentDays;
+    const dayValue = minuteValue * totalDailyMinutes;
+    const absenceDeductions = absenceDays > 0 ? absenceDays * dayValue : 0;
+    
+    const totalDeductions = latenessDeductions + absenceDeductions;
+    const totalOvertimeHours = Math.floor(totalOvertimeMinutes / 60);
+    const totalOvertimeMins = totalOvertimeMinutes % 60;
+
+    const overtimeValue = totalOvertimeMinutes * (minuteValue * 1.5);
+    const punctualityBonusValue = pontoConfig.punctualityBonusValue || 50;
+    const punctualityBonus = latenessCount === 0 ? punctualityBonusValue : 0;
+    const finalSalary = (user.salarioFixo || 0) + overtimeValue + punctualityBonus - totalDeductions;
+
+    return `
+        <!DOCTYPE html><html lang="pt-BR" class="dark"><head><meta charset="UTF-8">
+        <title>Relatório Mensal - ${user.nomeFantasia}</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style> body { font-family: 'Inter', sans-serif; } .no-print { display: block; } @media print { .no-print { display: none; } } </style>
+        </head><body class="bg-gray-900 text-white p-8">
+            <div class="max-w-4xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl">
+                <header class="text-center mb-8 border-b border-gray-700 pb-4">
+                    <h2 class="text-3xl font-bold">Relatório Mensal de Ponto</h2>
+                    <p class="text-gray-400 text-lg">${dayjs(startDate).format('MMMM [de] YYYY')}</p>
+                    <p class="text-gray-300 mt-2">Funcionário: <span class="font-semibold">${user.nomeFantasia}</span></p>
+                </header>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div class="bg-gray-700 p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-4 border-b border-gray-600 pb-2">Resumo de Frequência</h3>
+                        <ul class="space-y-2 text-gray-300">
+                            <li><strong>Dias úteis no mês:</strong> ${workDaysInMonth}</li>
+                            <li><strong>Dias trabalhados:</strong> ${presentDays}</li>
+                            <li class="text-red-400"><strong>Faltas (não justificadas):</strong> ${absenceDays}</li>
+                            <li class="text-yellow-400"><strong>Atrasos (> tolerância):</strong> ${latenessCount}</li>
+                            <li><strong>Total de horas extras:</strong> ${totalOvertimeHours}h ${totalOvertimeMins}m</li>
+                        </ul>
+                    </div>
+                    <div class="bg-gray-700 p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-4 border-b border-gray-600 pb-2">Resumo Financeiro</h3>
+                        <ul class="space-y-2 text-gray-300">
+                            <li><strong>Salário base:</strong> R$ ${(user.salarioFixo || 0).toFixed(2)}</li>
+                            <li class="text-green-400"><strong>Valor horas extras:</strong> + R$ ${overtimeValue.toFixed(2)}</li>
+                            <li class="text-green-400"><strong>Bônus pontualidade:</strong> + R$ ${punctualityBonus.toFixed(2)}</li>
+                            <li class="text-yellow-400"><strong>Descontos por Atrasos:</strong> - R$ ${latenessDeductions.toFixed(2)}</li>
+                            <li class="text-red-400"><strong>Descontos por Faltas:</strong> - R$ ${absenceDeductions.toFixed(2)}</li>
+                            <li class="pt-2 border-t border-gray-600 mt-2 font-bold text-white text-lg"><strong>Salário final estimado:</strong> R$ ${finalSalary.toFixed(2)}</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="text-center mt-8 no-print">
+                    <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">Imprimir Relatório</button>
+                </div>
+            </div>
+        </body></html>
+    `;
 }

@@ -7,14 +7,49 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    
     <link rel="stylesheet" href="admin.css">
-
     <script>
         document.documentElement.classList.add('dark');
     </script>
+    <style>
+        .day-checkbox-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.75rem;
+            width: 40px;
+            height: 40px;
+            color: #d1d5db;
+        }
+        .day-checkbox-input:checked + .day-checkbox-label {
+            background-color: #3b82f6;
+            border-color: #2563eb;
+            color: white;
+        }
+        .day-checkbox-input {
+            display: none;
+        }
+        .user-checkbox-container {
+            max-height: 120px;
+            overflow-y: auto;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+        }
+        .user-checkbox-label {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+    </style>
 </head>
-
 <body class="bg-gray-100 dark:bg-gray-900 font-sans">
 
     <div class="flex flex-col lg:flex-row min-h-screen">
@@ -30,11 +65,14 @@
                     <a href="#ponto" class="nav-link">
                         <i class="fas fa-clock mr-3"></i> Ponto Eletrônico
                     </a>
-                    <a href="#smartsale" class="nav-link">
-                        <i class="fas fa-tasks mr-3"></i> Smart Sale
+                    <a href="#rotina-e-metas" class="nav-link">
+                        <i class="fas fa-tasks mr-3"></i> Rotina e Metas
                     </a>
                     <a href="#olx" class="nav-link">
                         <i class="fas fa-bullhorn mr-3"></i> Dashboard OLX
+                    </a>
+                    <a href="#financeiro" class="nav-link">
+                        <i class="fas fa-dollar-sign mr-3"></i> Financeiro
                     </a>
                      <a href="#usuarios" class="nav-link">
                         <i class="fas fa-users mr-3"></i> Usuários
@@ -143,11 +181,43 @@
                      </div>
                 </section>
 
-                <section id="smartsale" class="admin-section" style="display: none;">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">Smart Sale - Tarefas</h2>
+                <section id="rotina-e-metas" class="admin-section" style="display: none;">
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">Rotina e Metas</h2>
+                    
+                    <div class="card mb-6">
+                        <h3 class="card-title">Gerenciar Tarefas Diárias Recorrentes</h3>
+                        <form id="daily-task-template-form" class="space-y-4">
+                            <div>
+                                <label for="daily-task-title" class="block text-sm font-medium text-gray-400">Título da Tarefa</label>
+                                <input type="text" id="daily-task-title" placeholder="Ex: Verificar novos leads" class="input-style mt-1" required>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400">Atribuir a</label>
+                                <div id="daily-task-assign-checkboxes" class="user-checkbox-container mt-1 space-y-2">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Repetir nos dias:</label>
+                                <div id="daily-task-days" class="flex justify-around gap-1 p-1 bg-gray-900 rounded-lg">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <button type="submit" class="btn btn-primary w-full">Adicionar Tarefa</button>
+                            </div>
+                        </form>
+                        <hr class="my-6 border-gray-700">
+                        <h4 class="text-lg font-semibold text-gray-300 mb-4">Tarefas Existentes</h4>
+                        <div id="daily-task-template-list" class="space-y-3">
+                        </div>
+                    </div>
+                    
                      <div class="card">
-                        <h3 class="card-title">Todas as Tarefas Pendentes</h3>
-                        <div id="allTasksList" class="mt-4 space-y-3"></div>
+                        <h3 class="card-title">Progresso das Tarefas do Dia</h3>
+                        <div id="daily-task-progress-container" class="mt-4 space-y-4">
+                        </div>
                     </div>
                 </section>
 
@@ -187,6 +257,56 @@
                     </div>
                 </section>
 
+                <section id="financeiro" class="admin-section" style="display: none;">
+                    <div class="space-y-6">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">Resumo Financeiro Mensal</h2>
+                            <div id="financial-summary-container" class="space-y-6">
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-title">Gerenciar Metas de Vendas Semanais</h3>
+                            <form id="sales-goal-form" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                                <div class="md:col-span-2">
+                                    <label for="goal-assign" class="block text-sm font-medium text-gray-400">Funcionário</label>
+                                    <select id="goal-assign" class="input-style mt-1" required></select>
+                                </div>
+                                <div>
+                                    <label for="goal-category" class="block text-sm font-medium text-gray-400">Categoria</label>
+                                    <select id="goal-category" class="input-style mt-1">
+                                        <option value="Apple">Apple</option>
+                                        <option value="Samsung">Samsung</option>
+                                        <option value="Xiaomi">Xiaomi</option>
+                                        <option value="Outros">Outros</option>
+                                    </select>
+                                </div>
+                                <div class="flex gap-2">
+                                    <div>
+                                        <label for="goal-quantity-min" class="block text-sm font-medium text-gray-400">De</label>
+                                        <input type="number" id="goal-quantity-min" placeholder="Min" class="input-style mt-1" required>
+                                    </div>
+                                    <div>
+                                        <label for="goal-quantity-max" class="block text-sm font-medium text-gray-400">Até</label>
+                                        <input type="number" id="goal-quantity-max" placeholder="Max" class="input-style mt-1" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="goal-bonus" class="block text-sm font-medium text-gray-400">Bônus (R$)</label>
+                                    <input type="number" step="0.01" id="goal-bonus" placeholder="Ex: 200.00" class="input-style mt-1" required>
+                                </div>
+                                <div class="md:col-span-5">
+                                    <button type="submit" class="btn btn-primary w-full">Adicionar Meta</button>
+                                </div>
+                            </form>
+                            <hr class="my-6 border-gray-700">
+                            <h4 class="text-lg font-semibold text-gray-300 mb-4">Metas Atuais</h4>
+                            <div id="sales-goal-list" class="space-y-3">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <section id="usuarios" class="admin-section" style="display: none;">
                      <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">Gerenciamento de Usuários</h2>
                      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -203,13 +323,27 @@
                                         <option value="admin">Admin</option>
                                     </select>
                                     <input type="number" step="0.01" id="createSalario" placeholder="Salário Fixo (R$)" class="input-style" required>
-                                    <p class="text-sm font-semibold text-gray-400 pt-2 border-t border-gray-700">Horário de Trabalho</p>
+                                    
+                                    <p class="text-sm font-semibold text-gray-400 pt-2 border-t border-gray-700">Horário (Seg-Sex)</p>
                                     <div class="grid grid-cols-2 gap-2">
                                         <input type="time" id="createEntrada1" class="input-style" title="Entrada 1" required>
                                         <input type="time" id="createSaida1" class="input-style" title="Saída 1" required>
                                         <input type="time" id="createEntrada2" class="input-style" title="Entrada 2 (Opcional)">
                                         <input type="time" id="createSaida2" class="input-style" title="Saída 2 (Opcional)">
                                     </div>
+
+                                    <div id="createSaturdaySchedule" class="hidden space-y-2 pt-2 border-t border-gray-600">
+                                        <p class="text-sm font-semibold text-gray-400">Horário (Sábado)</p>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <input type="time" id="createEntradaSabado" class="input-style" title="Entrada Sábado">
+                                            <input type="time" id="createSaidaSabado" class="input-style" title="Saída Sábado">
+                                        </div>
+                                    </div>
+
+                                    <p class="text-sm font-semibold text-gray-400 pt-2 border-t border-gray-700">Dias de Trabalho</p>
+                                    <div id="createWorkDays" class="flex justify-around gap-1 p-1 bg-gray-900 rounded-lg">
+                                        </div>
+
                                     <button type="submit" class="btn btn-primary w-full">Criar Usuário</button>
                                 </form>
                             </div>
@@ -226,48 +360,10 @@
         </main>
     </div>
     
-    <div id="editUserModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
-       <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg">
-           <h3 class="card-title mb-4 mt-0 pt-0 border-b border-gray-700">Editar Usuário</h3>
-           <form id="editUserForm">
-               <input type="hidden" id="editUserId">
-               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <input type="text" id="editNome" placeholder="Nome Fantasia" class="input-style" required>
-                    <select id="editRole" class="input-style">
-                        <option value="vendedor">Vendedor</option>
-                        <option value="marketing">Marketing</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                    <input type="number" step="0.01" id="editSalario" placeholder="Salário Fixo (R$)" class="input-style sm:col-span-2" required>
-                    <p class="text-sm font-semibold text-gray-400 pt-2 border-t border-gray-700 sm:col-span-2">Horário de Trabalho</p>
-                    <input type="time" id="editEntrada1" class="input-style" title="Entrada 1" required>
-                    <input type="time" id="editSaida1" class="input-style" title="Saída 1" required>
-                    <input type="time" id="editEntrada2" class="input-style" title="Entrada 2 (Opcional)">
-                    <input type="time" id="editSaida2" class="input-style" title="Saída 2 (Opcional)">
-               </div>
-               <div class="mt-6 flex justify-end gap-3">
-                   <button type="button" id="cancelEditUser" class="btn btn-secondary">Cancelar</button>
-                   <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-               </div>
-           </form>
-       </div>
-    </div>
-
-    <div id="confirmDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
-       <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
-           <p id="confirmDeleteText" class="text-white mb-6">Tem certeza?</p>
-           <div class="flex justify-center gap-4">
-               <button id="cancelDelete" class="btn btn-secondary">Cancelar</button>
-               <button id="confirmDelete" class="btn btn-danger">Confirmar</button>
-           </div>
-       </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/customParseFormat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/locale/pt-br.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/isSameOrBefore.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/isSameOrAfter.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -275,4 +371,4 @@
     <script type="module" src="js/admin.js"></script>
 
 </body>
-</html> 
+</html>
