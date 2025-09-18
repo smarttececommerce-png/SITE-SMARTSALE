@@ -1,13 +1,12 @@
 // js/admin/usuarios.js (Módulo de Administração de Utilizadores - REVISADO E MELHORADO)
 
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { doc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, setDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from "../config.js";
 
 let getGlobalData;
-const mainAuth = getAuth(); // A autenticação principal da app
+const mainAuth = getAuth();
 
-// Constante para os dias da semana, para evitar "números mágicos" no código.
 const weekDays = [
     { label: 'D', value: 0 }, { label: 'S', value: 1 },
     { label: 'T', value: 2 }, { label: 'Q', value: 3 },
@@ -15,11 +14,6 @@ const weekDays = [
     { label: 'S', value: 6 }
 ];
 
-/**
- * Inicializa o módulo de administração de Utilizadores.
- * @param {object} firestoreInstance - A instância do Firestore (não utilizada, db é importado).
- * @param {function} globalDataGetter - Função para obter dados globais.
- */
 export function initUsuariosAdmin(firestoreInstance, globalDataGetter) {
     getGlobalData = globalDataGetter;
     
@@ -27,7 +21,6 @@ export function initUsuariosAdmin(firestoreInstance, globalDataGetter) {
     
     setupEventListeners();
     
-    // Ouve as atualizações na lista de utilizadores para redesenhar a UI
     window.addEventListener('dataUpdated', (e) => {
         if (e.detail.dataType === 'users') {
             updateUserListUI();
@@ -35,25 +28,17 @@ export function initUsuariosAdmin(firestoreInstance, globalDataGetter) {
     });
 }
 
-/**
- * Configura os listeners de eventos estáticos da secção de utilizadores.
- */
 function setupEventListeners() {
     document.getElementById('createUserForm')?.addEventListener('submit', handleCreateUser);
     document.getElementById('editUserForm')?.addEventListener('submit', handleEditUser);
     
-    // Botão para fechar o modal de edição
     document.getElementById('cancelEditUser')?.addEventListener('click', () => {
         document.getElementById('editUserModal').classList.add('hidden');
     });
 
-    // Renderiza os checkboxes de dias de trabalho no formulário de criação
     renderWorkDays('createWorkDays', 'createSaturdaySchedule');
 }
 
-/**
- * Atualiza a lista de utilizadores na UI.
- */
 function updateUserListUI() {
     const userListEl = document.getElementById('userList');
     if (!userListEl) return;
@@ -64,7 +49,6 @@ function updateUserListUI() {
         return;
     }
     
-    // Filtra para não mostrar o administrador atualmente logado na lista
     const usersToList = users.filter(user => user.id !== mainAuth.currentUser.uid);
 
     if (usersToList.length === 0) {
@@ -87,7 +71,6 @@ function updateUserListUI() {
         </div>
     `).join('');
 
-    // Adiciona os event listeners aos botões de editar recém-criados
     userListEl.querySelectorAll('.edit-user-btn').forEach(button => {
         button.addEventListener('click', () => {
             const userId = button.dataset.userId;
@@ -99,11 +82,6 @@ function updateUserListUI() {
     });
 }
 
-
-/**
- * Manipula a submissão do formulário de criação de utilizador.
- * @param {Event} e O evento de submissão.
- */
 async function handleCreateUser(e) {
     e.preventDefault();
     const form = e.target;
@@ -114,18 +92,14 @@ async function handleCreateUser(e) {
     const password = form.querySelector('#createPassword').value;
     const entrada1 = form.querySelector('#createEntrada1').value;
     const saida1 = form.querySelector('#createSaida1').value;
-
-    // Salva as credenciais do admin atual para fazer login novamente depois
+    
     const adminEmail = mainAuth.currentUser.email;
-    // Esta é uma abordagem simplificada. Em produção, use senhas seguras ou tokens.
     const adminPassword = prompt(`Para confirmar a criação, por favor, insira a sua senha de administrador:`);
     if (!adminPassword) {
         alert("Criação cancelada. Senha de admin não fornecida.");
         return;
     }
 
-
-    // Validações
     if (password.length < 6) {
         alert("A palavra-passe precisa de ter no mínimo 6 caracteres.");
         return;
@@ -145,7 +119,6 @@ async function handleCreateUser(e) {
     submitButton.textContent = "A criar...";
 
     try {
-        // O Firebase faz login com o novo utilizador automaticamente.
         const userCredential = await createUserWithEmailAndPassword(mainAuth, email, password);
         const user = userCredential.user;
 
@@ -162,7 +135,7 @@ async function handleCreateUser(e) {
             horarioEntradaSabado: form.querySelector('#createEntradaSabado').value || null,
             horarioSaidaSabado: form.querySelector('#createSaidaSabado').value || null,
             diasTrabalho: workDays,
-            creditoHoras: 0 // Valor inicial
+            creditoHoras: 0
         };
 
         await setDoc(doc(db, "users", user.uid), userData);
@@ -179,24 +152,17 @@ async function handleCreateUser(e) {
             alert("Erro ao criar utilizador: " + error.message);
         }
     } finally {
-        // Faz login novamente com o admin para restaurar a sessão
         await signInWithEmailAndPassword(mainAuth, adminEmail, adminPassword);
         console.log("Sessão do admin restaurada.");
-
         submitButton.disabled = false;
         submitButton.textContent = "Criar Utilizador";
     }
 }
 
-/**
- * Preenche e abre o modal de edição com os dados do utilizador.
- * @param {object} user O objeto do utilizador a ser editado.
- */
-function openEditUserModal(user) {
+async function openEditUserModal(user) {
     const modal = document.getElementById('editUserModal');
     if (!modal) return;
     
-    // Preenche o formulário com os dados existentes
     modal.querySelector('#editUserId').value = user.id;
     modal.querySelector('#editNome').value = user.nomeFantasia;
     modal.querySelector('#editRole').value = user.role || 'vendedor';
@@ -208,16 +174,21 @@ function openEditUserModal(user) {
     modal.querySelector('#editEntradaSabado').value = user.horarioEntradaSabado || '';
     modal.querySelector('#editSaidaSabado').value = user.horarioSaidaSabado || '';
     
-    // Renderiza os dias de trabalho e ajusta a visibilidade do horário de sábado
+    // Carrega os dados de metas da coleção userMetas
+    const metasDocRef = doc(db, "userMetas", user.id);
+    const metasDocSnap = await getDoc(metasDocRef);
+    if (metasDocSnap.exists()) {
+        const metasData = metasDocSnap.data();
+        modal.querySelector('#editComissao').value = metasData.comissao || '';
+    } else {
+        modal.querySelector('#editComissao').value = '';
+    }
+    
     renderWorkDays('editWorkDays', 'editSaturdaySchedule', user.diasTrabalho);
     
     modal.classList.remove('hidden');
 }
 
-/**
- * Manipula a submissão do formulário de edição de utilizador.
- * @param {Event} e O evento de submissão.
- */
 async function handleEditUser(e) {
     e.preventDefault();
     const form = e.target;
@@ -231,7 +202,7 @@ async function handleEditUser(e) {
         return;
     }
 
-    const updatedData = {
+    const updatedUserData = {
         nomeFantasia: form.querySelector('#editNome').value.trim(),
         nomeFantasia_lower: form.querySelector('#editNome').value.trim().toLowerCase(),
         role: form.querySelector('#editRole').value,
@@ -244,12 +215,19 @@ async function handleEditUser(e) {
         horarioSaidaSabado: form.querySelector('#editSaidaSabado').value || null,
         diasTrabalho: workDays
     };
+    
+    const updatedMetasData = {
+        comissao: form.querySelector('#editComissao').value.trim()
+    };
 
     submitButton.disabled = true;
     submitButton.textContent = "A guardar...";
 
     try {
-        await updateDoc(doc(db, "users", uid), updatedData);
+        // Atualiza as duas coleções
+        await updateDoc(doc(db, "users", uid), updatedUserData);
+        await setDoc(doc(db, "userMetas", uid), updatedMetasData, { merge: true });
+        
         alert("Utilizador atualizado com sucesso!");
         document.getElementById('editUserModal').classList.add('hidden');
     } catch (error) {
@@ -261,15 +239,6 @@ async function handleEditUser(e) {
     }
 }
 
-
-// --- Funções Utilitárias ---
-
-/**
- * Renderiza os checkboxes dos dias da semana num container específico.
- * @param {string} containerId ID do elemento onde os checkboxes serão inseridos.
- * @param {string} scheduleId ID do container do horário de Sábado associado.
- * @param {Array<number>} [userDays=[1,2,3,4,5]] Dias pré-selecionados.
- */
 function renderWorkDays(containerId, scheduleId, userDays = [1, 2, 3, 4, 5]) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -282,14 +251,9 @@ function renderWorkDays(containerId, scheduleId, userDays = [1, 2, 3, 4, 5]) {
 
     const saturdayCheckbox = container.querySelector(`#${containerId}-6`);
     saturdayCheckbox?.addEventListener('change', () => toggleSaturdaySchedule(saturdayCheckbox, scheduleId));
-    toggleSaturdaySchedule(saturdayCheckbox, scheduleId); // Verifica o estado inicial
+    toggleSaturdaySchedule(saturdayCheckbox, scheduleId);
 }
 
-/**
- * Controla a visibilidade dos campos de horário de Sábado.
- * @param {HTMLInputElement} checkbox O checkbox de sábado.
- * @param {string} scheduleId ID do container do horário de Sábado.
- */
 function toggleSaturdaySchedule(checkbox, scheduleId) {
     const scheduleContainer = document.getElementById(scheduleId);
     if (checkbox && scheduleContainer) {

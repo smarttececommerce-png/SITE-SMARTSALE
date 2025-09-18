@@ -23,6 +23,36 @@
             color: #3b82f6;
             border-bottom-color: #3b82f6;
         }
+        .action-btn {
+            background-color: #374151;
+            color: #d1d5db;
+            border: none;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color .2s;
+        }
+        .action-btn:hover {
+            background-color: #4b5563;
+        }
+        .cancel-sale-btn {
+            background-color: #7f1d1d; /* Vermelho escuro para cancelamento */
+        }
+        .cancel-sale-btn:hover {
+            background-color: #991b1b;
+        }
+        .kpi-value {
+            background-color: transparent;
+            border: none;
+            color: #fff;
+            font-size: 1.875rem;
+            font-weight: 700;
+            padding: 0;
+            outline: none;
+            width: 100%
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-300 font-sans">
@@ -39,23 +69,23 @@
         </header>
 
         <section id="metas-kpis" class="mb-8">
-            <h2 class="text-xl font-semibold text-white mb-4">Minhas Metas</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <h2 class="text-xl font-semibold text-white mb-4">Meu Desempenho Hoje</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="kpi-card">
-                    <h3 class="kpi-title">Meta Mensal</h3>
-                    <input type="text" id="meta-mensal" class="kpi-input" value="R$ 0,00">
-                    <button data-target="meta-mensal" class="save-btn hidden">Salvar</button>
+                    <h3 class="kpi-title">Vendas de Hoje</h3>
+                    <p id="total-vendido-hoje" class="kpi-value text-green-400">R$ 0,00</p>
                 </div>
                 <div class="kpi-card">
-                    <h3 class="kpi-title">Meta Diária</h3>
-                    <input type="text" id="meta-diaria" class="kpi-input" value="R$ 0,00">
-                    <button data-target="meta-diaria" class="save-btn hidden">Salvar</button>
+                    <h3 class="kpi-title">Lucro de Hoje</h3>
+                    <p id="lucro-hoje" class="kpi-value text-blue-400">R$ 0,00</p>
                 </div>
-                <div class="kpi-card">
-                    <h3 class="kpi-title">Comissão</h3>
-                    <input type="text" id="comissao" class="kpi-input" value="0%">
-                    <button data-target="comissao" class="save-btn hidden">Salvar</button>
-                </div>
+            </div>
+        </section>
+        
+        <section id="weekly-goals-progress" class="mb-8">
+            <h2 class="text-xl font-semibold text-white mb-4">Meu Progresso Semanal</h2>
+            <div id="weekly-goals-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <p class="text-gray-500 italic">Calculando progresso das metas...</p>
             </div>
         </section>
 
@@ -91,7 +121,6 @@
             <h2 class="modal-title">Adicionar Novo Produto</h2>
             <div class="space-y-4">
                 <div><label class="block text-sm text-gray-400 mb-1">Nome do Produto</label><input id="product-name-input" type="text" class="modal-text-input" placeholder="Ex: iPhone 13 Pro"></div>
-                
                 <div>
                     <label class="block text-sm text-gray-400 mb-1">Categoria</label>
                     <select id="product-category-input" class="modal-text-input">
@@ -101,16 +130,45 @@
                         <option value="Outros">Outros</option>
                     </select>
                 </div>
-
+                <div id="battery-health-field" class="hidden">
+                    <label class="block text-sm text-gray-400 mb-1">Saúde da Bateria (%)</label>
+                    <input id="product-battery-health-input" type="number" min="0" max="100" class="modal-text-input" placeholder="Ex: 95">
+                </div>
                 <div><label class="block text-sm text-gray-400 mb-1">Preço de Venda (R$)</label><input id="product-price-input" type="number" class="modal-text-input" placeholder="Ex: 4500.00"></div>
                 <div><label class="block text-sm text-gray-400 mb-1">Custo do Produto (R$)</label><input id="product-cost-input" type="number" class="modal-text-input" placeholder="Ex: 3800.00"></div>
             </div>
             <button id="product-modal-save-btn" class="modal-save-btn">Salvar Produto</button>
         </div>
     </div>
+    <div id="edit-product-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="edit-product-modal-close-btn" class="modal-close-btn">&times;</button>
+            <h2 class="modal-title">Editar Produto</h2>
+            <div class="space-y-4">
+                <input type="hidden" id="edit-product-id">
+                <div><label class="block text-sm text-gray-400 mb-1">Nome do Produto</label><input id="edit-product-name-input" type="text" class="modal-text-input" placeholder="Ex: iPhone 13 Pro"></div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Categoria</label>
+                    <select id="edit-product-category-input" class="modal-text-input">
+                        <option value="Apple">Apple</option>
+                        <option value="Samsung">Samsung</option>
+                        <option value="Xiaomi">Xiaomi</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                <div id="edit-battery-health-field" class="hidden">
+                    <label class="block text-sm text-gray-400 mb-1">Saúde da Bateria (%)</label>
+                    <input id="edit-product-battery-health-input" type="number" min="0" max="100" class="modal-text-input" placeholder="Ex: 95">
+                </div>
+                <div><label class="block text-sm text-gray-400 mb-1">Preço de Venda (R$)</label><input id="edit-product-price-input" type="number" class="modal-text-input" placeholder="Ex: 4500.00"></div>
+                <div><label class="block text-sm text-gray-400 mb-1">Custo do Produto (R$)</label><input id="edit-product-cost-input" type="number" class="modal-text-input" placeholder="Ex: 3800.00"></div>
+            </div>
+            <button id="edit-product-modal-save-btn" class="modal-save-btn">Salvar Alterações</button>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/isoWeek.js"></script>
     <script type="module" src="js/config.js"></script>
     <script type="module" src="js/metas-e-produtos.js"></script>
 </body>

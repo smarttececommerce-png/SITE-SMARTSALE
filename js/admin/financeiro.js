@@ -1,4 +1,4 @@
-// js/admin/financeiro.js (Módulo Financeiro - REATORIZADO E MAIS SEGURO)
+// js/admin/financeiro.js (Módulo Financeiro - CÁLCULO EM TEMPO REAL)
 
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -16,7 +16,7 @@ export function initFinanceiroAdmin(firestoreInstance, globalDataGetter) {
 
     // Ouve o evento de atualização de dados para redesenhar a UI
     window.addEventListener('dataUpdated', (e) => {
-        const relevantData = ['users', 'ponto', 'absences', 'config', 'metas', 'goals', 'products', 'userMetas'];
+        const relevantData = ['users', 'ponto', 'absences', 'config', 'goals', 'products'];
         if (relevantData.includes(e.detail.dataType)) {
             displayFinancialSummary();
         }
@@ -37,10 +37,8 @@ function displayFinancialSummary() {
         pontoConfig = {}, 
         salesGoals = [], 
         products = [], 
-        userMetas = [] 
     } = getGlobalData();
     
-    // Filtra apenas funcionários que não são administradores para exibir no resumo
     const employees = users.filter(u => u.role !== 'admin');
 
     if (employees.length === 0) {
@@ -49,18 +47,30 @@ function displayFinancialSummary() {
     }
 
     container.innerHTML = employees.map(user => {
-        // Encontra os dados financeiros e de ponto específicos para este utilizador
         const userPontoRecords = pontoRecords.filter(r => r.employeeId === user.id);
         const userSalesGoals = salesGoals.filter(g => g.assignedTo === user.id);
-        const userProducts = products.filter(p => p.userId === user.id);
-        const currentUserMetas = userMetas.find(m => m.id === user.id) || {};
         
-        // Calcula o resumo do salário com base nos dados filtrados
-        const salarySummary = calculateSalary(user, userPontoRecords, absences, pontoConfig, userSalesGoals, userProducts);
+        // Calcula o salário base e bônus
+        const salarySummary = calculateSalary(user, userPontoRecords, absences, pontoConfig, userSalesGoals, products);
         
-        // Adiciona dados de vendas do dia
-        salarySummary.totalVendido = currentUserMetas.totalVendidoHoje || 0;
-        salarySummary.lucro = currentUserMetas.lucroHoje || 0;
+        // --- LÓGICA DE CÁLCULO EM TEMPO REAL ---
+        // Em vez de ler um valor pré-calculado, o sistema agora soma as vendas do dia.
+        const today = window.dayjs();
+        const startOfToday = today.startOf('day');
+        const endOfToday = today.endOf('day');
+
+        // Filtra todos os produtos para encontrar os que foram vendidos pelo usuário hoje.
+        const soldToday = products.filter(p => 
+            p.status === 'sold' && 
+            p.soldBy === user.id && 
+            p.soldAt && p.soldAt.toDate &&
+            window.dayjs(p.soldAt.toDate()).isBetween(startOfToday, endOfToday, null, '[]')
+        );
+        
+        // Calcula o total vendido e o lucro a partir dos produtos filtrados.
+        salarySummary.totalVendido = soldToday.reduce((sum, p) => sum + (p.price || 0), 0);
+        salarySummary.lucro = soldToday.reduce((sum, p) => sum + ((p.price || 0) - (p.cost || 0)), 0);
+        // --- FIM DA LÓGICA DE CÁLCULO ---
 
         return createSummaryCard(salarySummary);
     }).join('');
@@ -108,13 +118,13 @@ function createSummaryCard(summary) {
 /**
  * Função principal que orquestra o cálculo do salário.
  */
-function calculateSalary(user, records, allAbsences, pontoConfig, userGoals, userProducts) {
+function calculateSalary(user, records, allAbsences, pontoConfig, userGoals, allProducts) {
     const dayjs = window.dayjs;
     const startDate = dayjs().startOf('month');
     const endDate = dayjs().endOf('month');
 
     const pontoSummary = calculatePontoSummary(user, records, startDate, endDate, allAbsences, pontoConfig);
-    const salesBonus = calculateSalesBonus(user, userProducts, userGoals);
+    const salesBonus = calculateSalesBonus(user, allProducts, userGoals);
 
     const finalSalary = (user.salarioFixo || 0) 
         + pontoSummary.overtimeValue 
@@ -127,7 +137,7 @@ function calculateSalary(user, records, allAbsences, pontoConfig, userGoals, use
         salarioBase: user.salarioFixo || 0,
         salesBonus,
         finalSalary,
-        ...pontoSummary // Inclui todas as propriedades de ponto (dias trabalhados, atrasos, etc.)
+        ...pontoSummary
     };
 }
 
@@ -138,7 +148,6 @@ function calculatePontoSummary(user, records, startDate, endDate, allAbsences, p
     const dayjs = window.dayjs;
     let workDaysInMonth = 0;
     
-    // Calcula os dias úteis do mês para o utilizador
     let currentDay = startDate;
     while (currentDay.isSameOrBefore(endDate)) {
         const isGeneralAbsence = allAbsences.some(abs => abs.date === currentDay.format('YYYY-MM-DD'));
@@ -148,22 +157,20 @@ function calculatePontoSummary(user, records, startDate, endDate, allAbsences, p
         currentDay = currentDay.add(1, 'day');
     }
     
-    // Filtra os registos para o mês atual
     const monthRecords = records.filter(r => dayjs(r.data?.seconds * 1000).isBetween(startDate, endDate, null, '[]'));
 
     const presentDays = monthRecords.filter(r => r.status && !r.status.startsWith('falta')).length;
     const latenessCount = monthRecords.filter(r => r.minutosAtrasado > (pontoConfig.toleranciaMinutos || 5)).length;
     
-    // Calcula o valor do minuto de trabalho do utilizador
     const totalDailyMinutes = calculateUserDailyWorkMinutes(user);
-    const minuteValue = totalDailyMinutes > 0 ? (user.salarioFixo || 0) / (workDaysInMonth * totalDailyMinutes) : 0;
+    const minuteValue = (workDaysInMonth * totalDailyMinutes) > 0 ? (user.salarioFixo || 0) / (workDaysInMonth * totalDailyMinutes) : 0;
 
     const latenessDeductions = monthRecords.reduce((acc, r) => acc + (r.minutosAtrasado > (pontoConfig.toleranciaMinutos || 5) ? r.minutosAtrasado * minuteValue : 0), 0);
-    const overtimeValue = monthRecords.reduce((acc, r) => acc + (r.horasExtras || 0), 0) * (minuteValue * 1.5); // Adicional de 50%
+    const overtimeValue = monthRecords.reduce((acc, r) => acc + (r.horasExtras || 0), 0) * (minuteValue * 1.5);
     
     const absenceDays = workDaysInMonth - presentDays;
     const absenceDeductions = absenceDays > 0 ? absenceDays * (totalDailyMinutes * minuteValue) : 0;
-    const punctualityBonus = latenessCount === 0 ? (pontoConfig.punctualityBonusValue || 0) : 0;
+    const punctualityBonus = latenessCount === 0 && absenceDays === 0 ? (pontoConfig.punctualityBonusValue || 0) : 0;
 
     return { workDaysInMonth, presentDays, absenceDays, latenessCount, latenessDeductions, overtimeValue, absenceDeductions, punctualityBonus };
 }
@@ -171,18 +178,16 @@ function calculatePontoSummary(user, records, startDate, endDate, allAbsences, p
 /**
  * Calcula o bónus de vendas com base nas metas e produtos vendidos na semana.
  */
-function calculateSalesBonus(user, userProducts, userGoals) {
+function calculateSalesBonus(user, allProducts, userGoals) {
     const dayjs = window.dayjs;
     const startOfWeek = dayjs().startOf('week');
     const endOfWeek = dayjs().endOf('week');
 
-    // Filtra produtos vendidos nesta semana
-    const soldThisWeek = userProducts.filter(p => 
-        p.status === 'sold' && p.soldAt &&
-        dayjs(p.soldAt).isBetween(startOfWeek, endOfWeek, null, '[]')
+    const soldThisWeek = allProducts.filter(p => 
+        p.status === 'sold' && p.soldBy === user.id && p.soldAt && p.soldAt.toDate &&
+        dayjs(p.soldAt.toDate()).isBetween(startOfWeek, endOfWeek, null, '[]')
     );
 
-    // Agrupa as vendas por categoria
     const salesByCategory = soldThisWeek.reduce((acc, product) => {
         acc[product.category] = (acc[product.category] || 0) + 1;
         return acc;
@@ -191,10 +196,9 @@ function calculateSalesBonus(user, userProducts, userGoals) {
     let totalBonus = 0;
     for (const category in salesByCategory) {
         const quantitySold = salesByCategory[category];
-        // Encontra a melhor meta aplicável para a quantidade vendida na categoria
         const applicableGoal = userGoals
             .filter(goal => goal.category === category && quantitySold >= goal.quantityMin && quantitySold <= goal.quantityMax)
-            .sort((a, b) => b.bonus - a.bonus)[0]; // Ordena para pegar o maior bónus caso haja sobreposição
+            .sort((a, b) => b.bonus - a.bonus)[0];
 
         if (applicableGoal) {
             totalBonus += applicableGoal.bonus;
@@ -204,19 +208,12 @@ function calculateSalesBonus(user, userProducts, userGoals) {
 }
 
 // --- Funções Utilitárias ---
-
-/**
- * Verifica se uma determinada data é um dia de trabalho para o utilizador.
- */
 function isWorkDay(date, user) {
     if (!user || !Array.isArray(user.diasTrabalho)) return false;
-    const dayOfWeek = dayjs(date).day(); // 0 = Domingo, 6 = Sábado
+    const dayOfWeek = dayjs(date).day();
     return user.diasTrabalho.includes(dayOfWeek);
 }
 
-/**
- * Calcula o total de minutos de trabalho diário esperado para um utilizador.
- */
 function calculateUserDailyWorkMinutes(user) {
     if (!user.horarioEntrada1 || !user.horarioSaida1) return 0;
     const dayjs = window.dayjs;
