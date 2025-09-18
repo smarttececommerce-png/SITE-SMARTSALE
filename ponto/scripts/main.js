@@ -12,7 +12,7 @@ export function checkAuth(callback) {
             if (userDocSnap.exists()) {
                 const userData = userDocSnap.data();
                 const finalUserData = { ...userData, uid: user.uid };
-                callback(finalUserData); 
+                callback(finalUserData);
             } else {
                 console.error("Dados do usuário não encontrados no Firestore. Deslogando.");
                 logout();
@@ -92,4 +92,4 @@ export function initializeDayjs() {
     } catch (error) {
         console.error('Erro na configuração do Day.js:', error);
     }
-} 
+}
