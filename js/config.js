@@ -169,5 +169,6 @@ export const motivationalQuotes = [
   { text: "A vitória começa com a decisão de tentar.", author: "Desconhecido" },
   { text: "Sucesso não é sorte, é esforço e dedicação.", author: "Desconhecido" },
   { text: "Você pode ter resultados ou desculpas. Nunca os dois.", author: "Arnold Schwarzenegger" },
-  { text: "Quem acredita sempre alcança.", author: "Desconhecido" }
+  { text: "Quem acredita sempre alcança.", author: "Desconhecido" },
+  { text: "Deixa de ser Vagabundo Vitchongas e vai trabalhar", author: "Griza" }
 ];
